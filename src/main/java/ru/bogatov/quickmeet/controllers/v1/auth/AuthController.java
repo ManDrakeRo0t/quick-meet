@@ -5,41 +5,49 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.bogatov.quickmeet.constants.RouteConstants;
-import ru.bogatov.quickmeet.request.LoginForm;
-import ru.bogatov.quickmeet.request.RegistrationBody;
-import ru.bogatov.quickmeet.response.AuthenticationResponse;
+import ru.bogatov.quickmeet.model.request.LoginForm;
+import ru.bogatov.quickmeet.model.request.RegistrationBody;
+import ru.bogatov.quickmeet.model.response.AuthenticationResponse;
+import ru.bogatov.quickmeet.services.auth.AuthenticationService;
 
 @RestController
 @RequestMapping(RouteConstants.API_V1 + RouteConstants.AUTH)
 public class AuthController {
 
+    private final AuthenticationService authenticationService;
+    public AuthController(AuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
+    }
+
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody LoginForm userFromLogin){
-        return ResponseEntity.ok(new AuthenticationResponse());
+    public ResponseEntity login(@RequestBody @Validated LoginForm userFromLogin){
+        return ResponseEntity.ok(authenticationService.login(userFromLogin));
     }
 
     @PostMapping("/register")
-    public ResponseEntity registerNewUser(@RequestBody @Validated RegistrationBody user){
-        return ResponseEntity.ok(new AuthenticationResponse()); //удаление записи PhoneNumberAсtivationRecord
+    public ResponseEntity<AuthenticationResponse> registerNewUser(@RequestBody @Validated RegistrationBody body){
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(authenticationService.register(body)); //удаление записи PhoneNumberAсtivationRecord
     }
 
     @PostMapping("/resetPassword")
     public ResponseEntity resetPassword(@RequestParam String email) {
-        return ResponseEntity.ok(new AuthenticationResponse());
+        return ResponseEntity.ok(null);
     }
 
     @PostMapping("/updatePassword")
     public ResponseEntity resetPasswordByCode(@RequestBody LoginForm body) {
-        return ResponseEntity.ok(new AuthenticationResponse());
+        return ResponseEntity.ok(null);
     }
 
     @PostMapping("/refresh/{refreshToken}")
-    public ResponseEntity<String> refreshToken(@PathVariable String refreshToken){
-        return ResponseEntity.ok("response");
+    public ResponseEntity<AuthenticationResponse> refreshToken(@PathVariable String refreshToken){
+        return ResponseEntity.ok(authenticationService.refreshTokenPair(refreshToken));
     }
 
     @GetMapping("/activation")
     public ResponseEntity activateAccount(@RequestParam("code") String code) {
-        return ResponseEntity.ok(new AuthenticationResponse());
+        return ResponseEntity.ok(null);
     }
 }

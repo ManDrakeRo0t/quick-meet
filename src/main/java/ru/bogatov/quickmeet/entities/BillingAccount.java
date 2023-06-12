@@ -6,7 +6,7 @@ import javax.persistence.*;
 import java.util.Date;
 import java.util.UUID;
 
-//@Entity
+@Entity
 @Data
 public class BillingAccount {
 
@@ -18,6 +18,6 @@ public class BillingAccount {
 
     private Date nextBillDate;
 
-    @OneToOne
-    private UserData userData;
+    @OneToOne(fetch = FetchType.LAZY)
+    private User userData;
 }

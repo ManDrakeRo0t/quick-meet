@@ -2,15 +2,20 @@ package ru.bogatov.quickmeet.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
-import ru.bogatov.quickmeet.enums.AccountClass;
-import ru.bogatov.quickmeet.enums.Role;
+import lombok.Getter;
+import lombok.Setter;
+import ru.bogatov.quickmeet.model.enums.AccountClass;
+import ru.bogatov.quickmeet.model.enums.Role;
 
 import javax.persistence.*;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 
-//@Entity
-@Data
+@Entity
+@Getter
+@Setter
+@Table(name ="usr")
 public class User {
 
     @Id
@@ -33,12 +38,34 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Set<Role> roleSet;
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "city_id")
+    private City city;
+
+    private String phoneNumber;
+
+    private String description;
+
     @JsonIgnore
-    private UserData information;
+    private String password;
 
-    @OneToMany(fetch = FetchType.LAZY)
-    private Set<Meet> meetSet;
+    @JsonIgnore
+    private String refresh;
 
+    private boolean isActive;
+
+    private boolean isBlocked;
+
+    @JsonIgnore
+    private String activationCode;
+
+    private String email;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    private BillingAccount billingAccount;
+
+    private Date registrationDate;
+
+    private Date birthDate;
 
 }

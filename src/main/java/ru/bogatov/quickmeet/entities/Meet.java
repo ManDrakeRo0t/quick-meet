@@ -1,14 +1,14 @@
 package ru.bogatov.quickmeet.entities;
 
 import lombok.Data;
-import ru.bogatov.quickmeet.enums.MeetStatus;
+import org.hibernate.annotations.Type;
+import ru.bogatov.quickmeet.model.enums.MeetStatus;
 
 import javax.persistence.*;
-import java.util.Date;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 
-//@Entity
+@Entity
 @Data
 public class Meet {
 
@@ -20,7 +20,7 @@ public class Meet {
 
     private String description;
 
-    private Date date;
+    private LocalDateTime dateTime;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
@@ -34,17 +34,26 @@ public class Meet {
 
     private int currentPeople;
 
-    private float latitude;
+    private double latitude;
 
-    private float longevity;
+    private double longevity;
 
     private float rank;
 
-    @ManyToMany
+
+    @ManyToMany(fetch = FetchType.LAZY)
     private Set<User> guests;
+
+    @ElementCollection(targetClass = UUID.class)
+    @Column(
+            columnDefinition = "uuid[]"
+    )
+    private List<UUID> userBlackList;
 
     @Enumerated(EnumType.STRING)
     private MeetStatus meetStatus;
+
+    private String address;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")

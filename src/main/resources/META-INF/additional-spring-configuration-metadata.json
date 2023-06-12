@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "phone.confirmation.enabled",
+      "type": "java.lang.String",
+      "description": "Description for phone.confirmation.enabled."
+  }
+] }

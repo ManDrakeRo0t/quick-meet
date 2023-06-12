@@ -6,11 +6,10 @@ import javax.persistence.*;
 import java.util.UUID;
 
 @Data
-//@Entity
+@Entity
 public class City {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     private String name;
