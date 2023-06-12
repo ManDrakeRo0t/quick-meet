@@ -19,7 +19,7 @@ public class RegistrationBody {
     private Date birthDate;
     private String cityName;
     private UUID cityId;
-
+    private Boolean isAdmin;
 }
 
 

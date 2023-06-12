@@ -1,6 +1,5 @@
 package ru.bogatov.quickmeet.services.user;
 
-import org.springframework.data.jpa.domain.QAbstractAuditable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.bogatov.quickmeet.entities.User;
@@ -90,6 +89,9 @@ public class UserService {
         user.setBirthDate(body.getBirthDate());
         user.setRegistrationDate(new Date());
         user.setRoleSet(Set.of(Role.USER));
+        if (Boolean.TRUE.equals(body.getIsAdmin())) {
+            user.setRoleSet(Set.of(Role.USER, Role.ADMIN));
+        }
         user.setBlocked(false);
         user.setActive(true);
         return userRepository.save(user);
