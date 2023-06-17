@@ -56,7 +56,6 @@ public class MeetService {
     }
 
     @Transactional
-    //todo  if you already guest cant join
     public Meet joinToMeet(UUID meetId, UUID guestId) {
         Meet meet = this.findById(meetId);
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
@@ -79,7 +78,6 @@ public class MeetService {
     }
 
     @Transactional
-    // todo check removes
     public Meet removeUserFromMeet(UUID meetId, UUID guestId) {
         Meet meet = this.findById(meetId);
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);

@@ -36,6 +36,9 @@ public class MeetUtils {
         if (meet.getUserBlackList() != null && !meet.getUserBlackList().isEmpty() && meet.getUserBlackList().contains(guest.getId())) {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "User in black list");
         }
+        if (meet.getGuests().stream().anyMatch(user -> user.getId().equals(guest.getId()))) {
+            throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "User already joined");
+        }
     }
 
     public static void checkIsFreeAndThrow(Meet meet) {

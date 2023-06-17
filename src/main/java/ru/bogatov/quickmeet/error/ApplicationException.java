@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 @Builder
 @Data
 public class ApplicationException extends RuntimeException {
-    // todo хороший error handling
     public String message;
     public HttpStatus status;
     public String code;

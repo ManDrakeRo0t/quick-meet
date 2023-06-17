@@ -6,6 +6,7 @@ import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.repositories.userdata.CityRepository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -33,11 +34,7 @@ public class CityService {
         City city = new City();
         city.setId(id);
         city.setName(name);
-        if (this.cityRepository.existsById(id)) {
-            //todo return from repo
-            return city;
-        } else {
-            return this.cityRepository.save(city);
-        }
+        Optional<City> existing = this.cityRepository.findById(id);
+        return existing.orElseGet(() -> this.cityRepository.save(city));
     }
 }
