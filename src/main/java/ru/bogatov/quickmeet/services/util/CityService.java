@@ -34,6 +34,7 @@ public class CityService {
         city.setId(id);
         city.setName(name);
         if (this.cityRepository.existsById(id)) {
+            //todo return from repo
             return city;
         } else {
             return this.cityRepository.save(city);

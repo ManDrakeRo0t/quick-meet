@@ -22,7 +22,7 @@ public class PhoneActivationCodeController {
 
 //    @PostMapping("/refresh")
 //    public ResponseEntity refreshActivationCode(@RequestParam String phoneNumber) {
-//        return ResponseEntity.ok(null); // оьновление записи PhoneNumberAсtivationRecord
+//        return ResponseEntity.ok(null); // обновление записи PhoneNumberAсtivationRecord
 //    }
 
     @PostMapping("/confirm")

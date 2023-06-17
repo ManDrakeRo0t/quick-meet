@@ -45,9 +45,6 @@ public class Meet {
     private Set<User> guests;
 
     @ElementCollection(targetClass = UUID.class)
-    @Column(
-            columnDefinition = "uuid[]"
-    )
     private List<UUID> userBlackList;
 
     @Enumerated(EnumType.STRING)
