@@ -32,16 +32,17 @@ public class VerificationService {
             if (!isTestCodeEnabled) {
                 //send code by sms
             } //todo constants
-            return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(false).message(MESSAGE_CODE_SENT).build();
+            return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(true).message(MESSAGE_CODE_SENT).build();
         } catch (RuntimeException ex) {
-            return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(true).message(ex.getMessage()).build();
+            return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(false).message(ex.getMessage()).build();
         }
 
     }
 
     public boolean isVerified(String source) {
         try {
-            return verificationRecordRepository.findBySource(source).get().getIsVerified();
+            VerificationRecord record = verificationRecordRepository.findBySource(source).orElseThrow(() -> ErrorUtils.buildException(ApplicationError.COMMON_ERROR));
+            return record.getIsVerified() && VerificationSourceType.PHONE.equals(record.getType());
         } catch (RuntimeException e) {
             return false;
         }
@@ -49,9 +50,9 @@ public class VerificationService {
 
     public VerificationResponse confirmVerification(String code, String phoneNumber) {
         VerificationRecord record = findBySource(phoneNumber);
-        record.setIsVerified(true);
-        verificationRecordRepository.save(record);
         if (code.equals(record.getActivationCode())) {
+            record.setIsVerified(true);
+            verificationRecordRepository.save(record);
             return VerificationResponse.builder().step(STEP_CODE_VERIFY).isSuccess(true).message(MESSAGE_CODE_VERIFIED).build();
         }
         return VerificationResponse.builder().step(STEP_CODE_VERIFY).isSuccess(false).message(MESSAGE_CODE_NOT_VERIFIED).build();

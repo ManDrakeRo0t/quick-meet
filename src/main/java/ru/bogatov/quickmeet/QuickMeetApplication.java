@@ -8,7 +8,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 public class QuickMeetApplication {
     /* todo Add Account class to JWT token and sessions data [available chats]
     *  rework verification record logic
-    *
+    *  add TYPE REGISTER OR CONFIRM to confirmCode and check that phone is free
     * */
 
     public static void main(String[] args) {
