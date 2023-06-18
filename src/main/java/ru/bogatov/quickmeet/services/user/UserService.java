@@ -11,6 +11,7 @@ import ru.bogatov.quickmeet.model.enums.Role;
 import ru.bogatov.quickmeet.model.request.LoginForm;
 import ru.bogatov.quickmeet.repositories.userdata.UserRepository;
 import ru.bogatov.quickmeet.model.request.RegistrationBody;
+import ru.bogatov.quickmeet.services.auth.VerificationService;
 import ru.bogatov.quickmeet.services.util.CityService;
 
 import java.util.*;
@@ -22,11 +23,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CityService cityService;
+    private final VerificationService verificationService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CityService cityService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CityService cityService, VerificationService verificationService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.cityService = cityService;
+        this.verificationService = verificationService;
     }
 
     public UserForAuth findUserByPhoneNumberForAuth(String phoneNumber) { //not to use (need fix)
@@ -75,6 +78,9 @@ public class UserService {
     public User createUser(RegistrationBody body) {
         if (isUserExists(body.getPhoneNumber())) {
             throw ErrorUtils.buildException(ApplicationError.USER_EXISTS);
+        }
+        if (!verificationService.isVerified(body.getPhoneNumber())) {
+            throw ErrorUtils.buildException(ApplicationError.BUSINESS_LOGIC_ERROR, "Phone not verified");
         }
         User user = new User();
         user.setCity(cityService.createOrGetExisting(body.getCityId(), body.getCityName()));

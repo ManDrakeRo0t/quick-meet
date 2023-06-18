@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.configs.security.JwtProvider;
 import ru.bogatov.quickmeet.constants.AuthConstants;
 import ru.bogatov.quickmeet.entities.User;
-import ru.bogatov.quickmeet.entities.auth.UserForAuth;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.request.LoginForm;

@@ -99,7 +99,9 @@ public class MeetService {
                 border.getFirst().getFirst(),
                 border.getSecond().getFirst(),
                 border.getFirst().getSecond(),
-                border.getSecond().getSecond()
+                border.getSecond().getSecond(),
+                body.getDateFrom(),
+                body.getDateTo()
         );
     }
 

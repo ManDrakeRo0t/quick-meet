@@ -7,7 +7,6 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @SpringBootApplication
 public class QuickMeetApplication {
     /* todo Add Account class to JWT token and sessions data [available chats]
-    *  Add date filtration in search API
     *  rework verification record logic
     *
     * */

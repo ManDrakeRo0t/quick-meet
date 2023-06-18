@@ -9,7 +9,6 @@ import ru.bogatov.quickmeet.model.request.MeetUpdateBody;
 import ru.bogatov.quickmeet.model.request.SearchMeetBody;
 import ru.bogatov.quickmeet.services.meet.MeetService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,7 +29,7 @@ public class MeetController {
 
     @PatchMapping("/{id}")
     public ResponseEntity<Meet> updateMeetById(@PathVariable UUID id, @RequestBody MeetUpdateBody body) {
-        return ResponseEntity.ok(new Meet());
+        return ResponseEntity.ok(meetService.updateMeet(id, body));
     }
 
     @PostMapping("")
