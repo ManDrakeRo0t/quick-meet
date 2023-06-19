@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.bogatov.quickmeet.constants.RouteConstants;
 import ru.bogatov.quickmeet.model.enums.VerificationSourceType;
+import ru.bogatov.quickmeet.model.request.VerificationBody;
 import ru.bogatov.quickmeet.services.auth.VerificationService;
 
 @RestController
@@ -17,8 +18,8 @@ public class ActivationCodeController {
     }
 
     @PostMapping("/send")
-    public ResponseEntity sendActivationCode(@RequestParam String source, @RequestParam VerificationSourceType type) {
-        return ResponseEntity.ok(verificationService.startVerification(source, type)); // создание записи PhoneNumberAсtivationRecord
+    public ResponseEntity sendActivationCode(@RequestBody VerificationBody body) {
+        return ResponseEntity.ok(verificationService.startVerification(body)); // создание записи PhoneNumberAсtivationRecord
     }
 
 //    @PostMapping("/refresh")
@@ -27,8 +28,8 @@ public class ActivationCodeController {
 //    }
 
     @PostMapping("/confirm")
-    public ResponseEntity confirmNumber(@RequestParam String source, @RequestParam String code) {
-        return ResponseEntity.ok(verificationService.confirmVerification(code, source)); // сверка кода и проставление статуса true
+    public ResponseEntity confirmNumber(@RequestBody VerificationBody body) {
+        return ResponseEntity.ok(verificationService.confirmVerification(body));
     }
 
 }

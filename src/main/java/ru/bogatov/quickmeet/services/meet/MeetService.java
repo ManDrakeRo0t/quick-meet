@@ -39,6 +39,7 @@ public class MeetService {
 
     @Transactional
     public Meet createNewMeet(MeetCreationBody body) {
+        MeetUtils.validateMeetCreation(body);
         Meet meet = new Meet(); //todo more validations
         User owner = userService.findUserByID(body.getOwnerId());
         setCity(body, owner, meet);

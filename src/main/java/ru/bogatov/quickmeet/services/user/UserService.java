@@ -82,6 +82,7 @@ public class UserService {
         if (!verificationService.isVerified(body.getPhoneNumber())) {
             throw ErrorUtils.buildException(ApplicationError.BUSINESS_LOGIC_ERROR, "Phone not verified");
         }
+        verificationService.deleteRecord(body.getPhoneNumber());
         User user = new User();
         user.setCity(cityService.createOrGetExisting(body.getCityId(), body.getCityName()));
         user.setFirstName(body.getFirstName());

@@ -6,6 +6,7 @@ import ru.bogatov.quickmeet.entities.User;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
+import ru.bogatov.quickmeet.model.request.MeetCreationBody;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,6 +54,10 @@ public class MeetUtils {
         }
         meet.getGuests().add(user);
         meet.setCurrentPeople(meet.getCurrentPeople() + 1);
+    }
+
+    public static void validateMeetCreation(MeetCreationBody body) {
+
     }
 
     public static void removeGuest(Meet meet, User user) {
