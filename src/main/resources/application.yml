@@ -1,22 +1,64 @@
-spring.jpa.hibernate.ddl-auto=update
-#spring.jpa.show-sql=true
+# ssh -i Desktop/id_ed25519 quickm3et@158.160.18.176
+# dev-properties
+server:
+  port: 8080
 
-spring.application.name = quick-meet
-logging.pattern.console = %C{1.} [%-5level] %d{HH:mm:ss} - %msg%n
-spring.mvc.pathmatch.matching-strategy = ANT_PATH_MATCHER
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  application:
+    name : "quick-meet"
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
-#heroku
-#spring.datasource.url=jdbc:postgresql://ec2-34-242-8-97.eu-west-1.compute.amazonaws.com:5432/d6nb45umvnrd18
-#spring.datasource.username=mtjsdyahmlshzd
-#spring.datasource.password=d081a41807f7d72d06068ac5de252c531f7d889e8f1c3593b081b5970fa31c3a
-#local
-spring.datasource.url=jdbc:postgresql://localhost:5432/quick-meet
-spring.datasource.username=postgres
-spring.datasource.password=1234
-#render
-#spring.datasource.url=jdbc:postgresql://dpg-chf8o6jhp8u05q168o10-a.frankfurt-postgres.render.com:5432/quick_meet_bgzr
-#spring.datasource.username=mandrake
-#spring.datasource.password=yEIc6XhfsNOxTVNKTQU3NiUCtJrvqZRD
+  datasource:
+    url: "jdbc:postgresql://localhost:5432/quick-meet"
+    username: "postgres"
+    password: "1234"
+
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+
+logging:
+  pattern:
+    console: "%C{1.} [%-5level] %d{HH:mm:ss} - %msg%n"
+
+management:
+  endpoints.web.exposure.include: 'prometheus, health'
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+
+
+jwt:
+  secret: test-secret
+  token:
+    refresh:
+      expire: 30
+    access:
+      expire: 30
+
+
+phone:
+  confirmation:
+    disable: true
+
+
+error:
+  response:
+    stacktrace: true
 
 #--------------region logging------------------
 #logging.file.name = logs/spring-boot-logging.log
@@ -26,17 +68,13 @@ spring.datasource.password=1234
 #logging.level.org.hibernate=ERROR
 
 #--------------region server-------------------
-server.port=8080
-spring.servlet.multipart.max-file-size=50MB
-spring.servlet.multipart.max-request-size=50MB
+
+
 
 #--------------region application--------------
-jwt.secret = test-secret
-token.refresh.expire = 30
-token.access.expire = 30
+
 #mail.confirmation = false
-phone.confirmation.disable = true
-error.response.stacktrace = true
+
 #client.endpoint = http://localhost:3000
 #backend.endpoint = http://localhost:8081
 #classpath:file-storage
@@ -55,5 +93,3 @@ error.response.stacktrace = true
 #spring.mail.port=465
 #spring.mail.protocol=smtps
 #mail.debug=false
-
-spring.jackson.serialization.fail-on-empty-beans=false

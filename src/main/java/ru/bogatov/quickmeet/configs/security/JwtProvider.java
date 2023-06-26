@@ -21,9 +21,9 @@ public class JwtProvider {
 
     @Value("${jwt.secret}")
     String SECRET;
-    @Value("${token.access.expire}")
+    @Value("${jwt.token.access.expire}")
     Integer ACCESS_TOKEN_EXPIRE;
-    @Value("${token.refresh.expire}")
+    @Value("${jwt.token.refresh.expire}")
     Integer REFRESH_TOKEN_EXPIRE;
     private final static String PHONE = "phone";
     private final static String ROLES = "roles";
@@ -68,7 +68,7 @@ public class JwtProvider {
 
     public boolean validateToken(String token){
         try{
-            Claims claims = Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody();
+            Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody();
             return true;
         }catch (ExpiredJwtException expEx) {
             logger.warn("Token expired");
