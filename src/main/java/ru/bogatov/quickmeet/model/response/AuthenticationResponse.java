@@ -3,7 +3,7 @@ package ru.bogatov.quickmeet.model.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Data;
-import ru.bogatov.quickmeet.entities.User;
+import ru.bogatov.quickmeet.entity.User;
 
 import java.util.Map;
 

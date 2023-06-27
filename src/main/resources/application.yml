@@ -7,7 +7,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false
+    show-sql: true
   application:
     name : "quick-meet"
   mvc:
@@ -36,10 +36,10 @@ management:
   metrics:
     export:
       prometheus:
-        enabled: true
+        enabled: false # true
     distribution:
       percentiles-histogram:
-        "[http.server.requests]": true
+        "[http.server.requests]": false # true
 
 
 jwt:

@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import ru.bogatov.quickmeet.entities.User;
+import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.model.enums.Role;
 
 import java.util.Collection;
