@@ -1,5 +1,6 @@
 package ru.bogatov.quickmeet.controller.v1.meet;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.bogatov.quickmeet.constant.RouteConstants;
@@ -35,7 +36,7 @@ public class MeetController {
 
     @PostMapping("")
     public ResponseEntity<MeetModificationResponse> createMeet(@RequestBody MeetCreationBody body) {
-        return ResponseEntity.ok(meetService.createNewMeet(body));
+        return ResponseEntity.status(HttpStatus.CREATED).body(meetService.createNewMeet(body));
     }
 
     @PostMapping("/search")

@@ -32,8 +32,8 @@ public class UserService {
         this.verificationService = verificationService;
     }
 
-    public UserForAuth findUserByPhoneNumberForAuth(String phoneNumber) { //not to use (need fix)
-        return userRepository.findByPhoneNumberForAuth(phoneNumber)
+    public UserForAuth findUserForAuthById(UUID id) {
+        return userRepository.findByPhoneNumberForAuth(id)
                 .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
     }
 
@@ -79,7 +79,7 @@ public class UserService {
     }
 
     public User createUser(RegistrationBody body) {
-        if (isUserExists(body.getPhoneNumber())) {
+        if (userRepository.isUserExistWithPhoneNumber(body.getPhoneNumber()).isPresent()) {
             throw ErrorUtils.buildException(ApplicationError.USER_EXISTS);
         }
         if (!verificationService.isVerified(body.getPhoneNumber())) {
@@ -100,9 +100,9 @@ public class UserService {
         user.setEmail(body.getEmail());
         user.setBirthDate(body.getBirthDate());
         user.setRegistrationDate(new Date());
-        user.setRoleSet(Set.of(Role.USER));
+        user.setRole(Role.USER);
         if (Boolean.TRUE.equals(body.getIsAdmin())) { //todo fix it
-            user.setRoleSet(Set.of(Role.USER, Role.ADMIN));
+            user.setRole(Role.ADMIN);
         }
         user.setBlocked(false);
         user.setActive(true);

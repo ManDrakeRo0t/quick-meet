@@ -13,10 +13,12 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByPhoneNumber(String phoneNumber);
-    @Query(value = "select cast(u.id as varchar) as id, u.account_class, u.phone_number, u.refresh,u.is_active, u.is_blocked " +
+    @Query(nativeQuery = true, value = "select cast(id as varchar) as id from usr where phone_number = :phoneNumber")
+    Optional<UUID> isUserExistWithPhoneNumber(@Param(value = "phoneNumber") String phoneNumber);
+    @Query(value = "select cast(u.id as varchar) as id, u.account_class, u.phone_number, u.refresh,u.is_active, u.password, u.is_blocked, u.role " +
             "from usr u " +
-            "where u.phone_number = ?1", nativeQuery = true)
-    Optional<UserForAuth> findByPhoneNumberForAuth(String phoneNumber);
+            "where u.id = ?1", nativeQuery = true)
+    Optional<UserForAuth> findByPhoneNumberForAuth(UUID userId);
     @Modifying
     @Query(value = "update usr set refresh = :refresh_token where id = :id", nativeQuery = true)
     void updateRefreshToken(@Param("id") UUID id, @Param("refresh_token") String refresh);

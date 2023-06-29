@@ -9,16 +9,20 @@ import java.util.*;
 
 @Entity
 @Data
+@Table(name = "meet")
 public class Meet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @Column(name = "name", length = 30, nullable = false)
     private String name;
 
+    @Column(name = "description")
     private String description;
 
+    @Column(name = "date_time")
     private LocalDateTime dateTime;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -29,16 +33,22 @@ public class Meet {
     @JoinColumn(name = "city_id")
     private City city;
 
+    @Column(name = "max_people")
     private int maxPeople;
 
+    @Column(name = "current_people")
     private int currentPeople;
 
+    @Column(name = "latitude")
     private double latitude;
 
+    @Column(name = "is_rating_processed")
     private boolean isRatingProcessed;
 
+    @Column(name = "longevity")
     private double longevity;
 
+    @Column(name = "rank")
     private float rank;
 
     @OneToMany(mappedBy = "meet", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -48,8 +58,10 @@ public class Meet {
     private Set<UUID> userBlackList;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "meet_status")
     private MeetStatus meetStatus;
 
+    @Column(name = "address", length = 128)
     private String address;
 
     @ManyToOne(fetch = FetchType.EAGER)

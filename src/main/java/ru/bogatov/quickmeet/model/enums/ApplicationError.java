@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 public enum ApplicationError {
 
     COMMON_ERROR("Something went wrong", "QM-0000", HttpStatus.INTERNAL_SERVER_ERROR),
-
     DATA_ACCESS_ERROR("Something went during access to data", "QM-0001", HttpStatus.INTERNAL_SERVER_ERROR),
     DATA_NOT_FOUND_ERROR("Data not found", "QM-0002", HttpStatus.NOT_FOUND),
     REQUEST_PARAMETERS_ERROR("Something wrong with request params", "QM-0003", HttpStatus.BAD_REQUEST),
@@ -15,6 +14,7 @@ public enum ApplicationError {
     USER_NOT_FOUND("User not found", "QM-0101", HttpStatus.NOT_FOUND),
     USER_IS_BLOCKED("User is blocked", "QM-0102", HttpStatus.BAD_REQUEST),
     COMMON_MEET_ERROR("Something went wrong during meet organization", "QM-0200", HttpStatus.BAD_REQUEST),
+    MEET_VALIDATION_ERROR("Something went wrong during meet validation", "QM-201", HttpStatus.BAD_REQUEST),
     AUTHENTICATION_ERROR("Error during authentication", "QM-0400", HttpStatus.UNAUTHORIZED);
 
 

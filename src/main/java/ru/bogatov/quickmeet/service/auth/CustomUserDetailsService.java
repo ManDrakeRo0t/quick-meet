@@ -4,8 +4,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import ru.bogatov.quickmeet.entity.User;
+import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 import ru.bogatov.quickmeet.model.auth.CustomUserDetails;
 import ru.bogatov.quickmeet.service.user.UserService;
+
+import java.util.UUID;
 
 
 @Component
@@ -18,9 +21,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public CustomUserDetails loadUserByUsername(String phoneNumber) throws UsernameNotFoundException {
+    public CustomUserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
         try {
-            User user = userService.findUserByPhoneNumber(phoneNumber);
+            UserForAuth user = userService.findUserForAuthById(UUID.fromString(userId));
             return CustomUserDetails.fromUserToUserDetails(user);
         }catch (Exception e) {
             return  null;

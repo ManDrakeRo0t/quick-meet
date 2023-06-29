@@ -48,7 +48,7 @@ public class MeetService {
     @Transactional
     public MeetModificationResponse createNewMeet(MeetCreationBody body) {
         MeetUtils.validateMeetCreation(body);
-        Meet meet = new Meet(); //todo more validations
+        Meet meet = new Meet();
         User owner = userService.findUserByID(body.getOwnerId());
         setCity(body, owner, meet);
         setCommonData(meet, body);
@@ -115,8 +115,6 @@ public class MeetService {
     public List<Meet> search(SearchMeetBody body) {
         Pair<Pair<Double, Double>, Pair<Double, Double>> border =
                 MeetUtils.calculateBorder(body.getLatitude(), body.getLongevity(), body.getRadius());
-        System.out.println(border.getFirst().getFirst() + ", " + border.getFirst().getSecond());
-        System.out.println(border.getSecond().getFirst() + ", " + border.getSecond().getSecond());
         List<String> stringStatuses = body.getStatuses().stream().map(MeetStatus::getValue).collect(Collectors.toList());
         return meetRepository.searchMeet(stringStatuses,
                 body.getCategories(),

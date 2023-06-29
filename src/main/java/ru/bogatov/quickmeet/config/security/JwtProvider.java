@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.entity.User;
+import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 import ru.bogatov.quickmeet.service.user.UserService;
 
 
@@ -26,8 +27,7 @@ public class JwtProvider {
     Integer ACCESS_TOKEN_EXPIRE;
     @Value("${jwt.token.refresh.expire}")
     Integer REFRESH_TOKEN_EXPIRE;
-    private final static String PHONE = "phone";
-    private final static String ROLES = "roles";
+    private final static String ROLES = "role";
     private final static String ACCOUNT_CLASS = "class";
     private final static String ALLOWED_CHATS = "allowedChats";
     private final static String ID = "id";
@@ -40,11 +40,10 @@ public class JwtProvider {
         this.userService = userService;
     }
 
-    public String generateTokenForUser(User user) {
+    public String generateTokenForUser(UserForAuth user) {
         Date date = Date.from(LocalDateTime.now().plusMinutes(ACCESS_TOKEN_EXPIRE).atZone(ZoneId.systemDefault()).toInstant());
         HashMap<String, Object> claims = new HashMap<>();
-        claims.put(PHONE,user.getPhoneNumber());
-        claims.put(ROLES,user.getRoleSet());
+        claims.put(ROLES,user.getRole());
         claims.put(ID,user.getId());
         claims.put(ACCOUNT_CLASS,user.getAccountClass());
         claims.put(ALLOWED_CHATS, userService.findAllowedChatIds(user.getId()));
@@ -61,16 +60,15 @@ public class JwtProvider {
     }
 
     @Transactional
-    public String generateRefreshForUser(User user) {
+    public String generateRefreshForUser(UserForAuth user) {
         Date date = Date.from(LocalDateTime.now().plusDays(REFRESH_TOKEN_EXPIRE).atZone(ZoneId.systemDefault()).toInstant());
         HashMap<String, Object> claims = new HashMap<>();
-        claims.put(PHONE,user.getPhoneNumber());
+        claims.put(ID,user.getId());
         String token = Jwts.builder()
                 .setClaims(claims)
                 .setExpiration(date)
                 .signWith(SignatureAlgorithm.HS512,SECRET)
                 .compact();
-        user.setRefresh(token);
         userService.updateRefreshToken(user.getId(), token);
         return token;
     }
@@ -94,8 +92,8 @@ public class JwtProvider {
         return false;
     }
 
-    public String getLoginFromToken(String token){
+    public String getUserIdFromToken(String token){
         Claims claims = Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody();
-        return claims.get(PHONE).toString();
+        return claims.get(ID).toString();
     }
 }

@@ -85,8 +85,8 @@ public class VerificationService {
         }
     }
 
-    private VerificationRecord createOrUpdateExistingRecord(String source, VerificationSourceType type, boolean checkExistingCustomer) {
-        if (checkExistingCustomer && userRepository.findByPhoneNumber(source).isPresent()) {
+    private void createOrUpdateExistingRecord(String source, VerificationSourceType type, boolean checkExistingCustomer) {
+        if (checkExistingCustomer && userRepository.isUserExistWithPhoneNumber(source).isPresent()) {
             throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Phone number already registered");
         }
         Optional<VerificationRecord> existingRecord = verificationRecordRepository.findBySource(source);
@@ -103,7 +103,7 @@ public class VerificationService {
             record.setSource(source);
         }
         record.setActivationCode(generateCode());
-        return verificationRecordRepository.save(record);
+        verificationRecordRepository.save(record);
     }
 
 

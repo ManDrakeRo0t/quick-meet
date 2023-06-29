@@ -28,7 +28,7 @@ public class AuthController {
     public ResponseEntity<AuthenticationResponse> registerNewUser(@RequestBody @Validated RegistrationBody body){
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(authenticationService.register(body)); //удаление записи PhoneNumberAсtivationRecord
+                .body(authenticationService.register(body));
     }
 
     @PostMapping("/resetPassword")

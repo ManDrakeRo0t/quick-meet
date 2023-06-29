@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.config.security.JwtProvider;
 import ru.bogatov.quickmeet.constant.AuthConstants;
 import ru.bogatov.quickmeet.entity.User;
+import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.request.LoginForm;
@@ -16,12 +17,13 @@ import ru.bogatov.quickmeet.service.user.UserService;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 
 @Service
 public class AuthenticationService {
 
-    UserService userService;
+    private final UserService userService;
     private final JwtProvider jwtProvider;
     private final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
 
@@ -71,18 +73,15 @@ public class AuthenticationService {
             logger.warn("not able to validate refresh token : "  + token);
             throw ErrorUtils.buildException(ApplicationError.AUTHENTICATION_ERROR, "Not able to validate refresh token");
         }
-        String phoneNumber = jwtProvider.getLoginFromToken(token);
-        User user = userService.findUserByPhoneNumber(phoneNumber);
+        String userId = jwtProvider.getUserIdFromToken(token);
+        UserForAuth user = userService.findUserForAuthById(UUID.fromString(userId));
         if (user.getRefresh() != null && token.equals(user.getRefresh())) {
             Map<String,String> response = new HashMap<>();
             response.put(AuthConstants.TOKEN,jwtProvider.generateTokenForUser(user));
             response.put(AuthConstants.REFRESH,jwtProvider.generateRefreshForUser(user));
-            logger.info("new token for number + " + phoneNumber + " is def [ " + response.get(AuthConstants.TOKEN) + " ]" +
-                    "ref : [ " +  response.get(AuthConstants.REFRESH) + " ] ");
+
             return response;
         }
-        logger.warn("refresh tokens not same for user : "
-                + phoneNumber + "[ from db = " + user.getRefresh() + " | from req + " + token + " ]");
         throw ErrorUtils.buildException(ApplicationError.AUTHENTICATION_ERROR, "Refresh tokens not same");
     }
 

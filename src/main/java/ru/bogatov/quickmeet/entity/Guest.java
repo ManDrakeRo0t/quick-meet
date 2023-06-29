@@ -15,6 +15,7 @@ public class Guest {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
+    @Column(name = "user_id")
     private UUID userId;
     @Column(name = "is_attend")
     boolean isAttend;

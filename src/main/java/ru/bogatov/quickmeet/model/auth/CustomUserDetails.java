@@ -5,6 +5,7 @@ import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import ru.bogatov.quickmeet.entity.User;
+import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 import ru.bogatov.quickmeet.model.enums.Role;
 
 import java.util.Collection;
@@ -53,13 +54,13 @@ public class CustomUserDetails implements UserDetails {
         return this.isActive;
     }
 
-    public static CustomUserDetails fromUserToUserDetails(User user) {
+    public static CustomUserDetails fromUserToUserDetails(UserForAuth user) {
         return CustomUserDetails.builder()
                 .isActive(user.isActive())
                 .isBlocked(user.isBlocked())
                 .password(user.getPassword())
                 .phoneNumber(user.getPhoneNumber())
-                .roleSet(user.getRoleSet())
+                .roleSet(Set.of(user.getRole()))
                 .build();
     }
 }

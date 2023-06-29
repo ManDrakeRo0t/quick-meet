@@ -8,6 +8,7 @@ import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 import ru.bogatov.quickmeet.model.request.MeetCreationBody;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -58,7 +59,9 @@ public class MeetUtils {
     }
 
     public static void validateMeetCreation(MeetCreationBody body) {
-
+        if (body.getTime().isBefore(LocalDateTime.now())) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet start date in past");
+        }
     }
 
     public static UUID removeGuest(Meet meet, UUID userId) {
