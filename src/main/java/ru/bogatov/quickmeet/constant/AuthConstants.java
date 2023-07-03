@@ -9,11 +9,8 @@ public class AuthConstants {
     public static final String MESSAGE_CODE_ALREADY_VERIFIED = "Code already verified";
     public static final String MESSAGE_CODE_NOT_VERIFIED = "Code not verified";
     public static final String MESSAGE_RECORD_NOT_FOUND = "Verification record not found";
-
     public final static String TOKEN = "access_token";
     public final static String REFRESH = "refresh_token";
-
-
 
 
 }

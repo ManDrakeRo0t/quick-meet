@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.bogatov.quickmeet.constant.RouteConstants;
+import ru.bogatov.quickmeet.model.request.LoginAfterVerificationForm;
 import ru.bogatov.quickmeet.model.request.LoginForm;
 import ru.bogatov.quickmeet.model.request.RegistrationBody;
 import ru.bogatov.quickmeet.model.response.AuthenticationResponse;
@@ -24,6 +25,11 @@ public class AuthController {
         return ResponseEntity.ok(authenticationService.login(userFromLogin));
     }
 
+    @PostMapping("/verification-login")
+    public ResponseEntity loginAfterVerification(@RequestParam("phone") String phoneNumber){
+        return ResponseEntity.ok(authenticationService.loginAfterVerification(phoneNumber));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> registerNewUser(@RequestBody @Validated RegistrationBody body){
         return ResponseEntity
@@ -32,8 +38,10 @@ public class AuthController {
     }
 
     @PostMapping("/resetPassword")
-    public ResponseEntity resetPassword(@RequestParam String email) {
-        return ResponseEntity.ok(null);
+    public ResponseEntity resetPassword(@RequestBody @Validated LoginForm resetForm) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(authenticationService.resetPassword(resetForm));
     }
 
     @PostMapping("/updatePassword")
@@ -46,8 +54,4 @@ public class AuthController {
         return ResponseEntity.ok(authenticationService.refreshTokenPair(refreshToken));
     }
 
-    @GetMapping("/activation")
-    public ResponseEntity activateAccount(@RequestParam("code") String code) {
-        return ResponseEntity.ok(null);
-    }
 }

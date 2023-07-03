@@ -2,12 +2,14 @@ package ru.bogatov.quickmeet.service.user;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.Role;
+import ru.bogatov.quickmeet.model.request.LoginAfterVerificationForm;
 import ru.bogatov.quickmeet.model.request.LoginForm;
 import ru.bogatov.quickmeet.repository.userdata.UserRepository;
 import ru.bogatov.quickmeet.model.request.RegistrationBody;
@@ -65,13 +67,43 @@ public class UserService {
         if (!passwordEncoder.matches(loginForm.getPassword(), user.getPassword())) {
             throw ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND);
         }
+        checkUserStatus(user);
+        return user;
+    }
+
+    public User findActiveAndAvailableUserByPhoneAndCheckVerification(String phoneNumber) {
+        if (!verificationService.isVerified(phoneNumber)) {
+            throw ErrorUtils.buildException(ApplicationError.AUTHENTICATION_ERROR, "Verification not found");
+        }
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
+        checkUserStatus(user);
+        verificationService.deleteRecord(phoneNumber);
+        return user;
+    }
+    @Transactional
+    public User findUserAndResetPassword(LoginForm loginForm) {
+        if (!verificationService.isVerified(loginForm.getPhoneNumber())) {
+            throw ErrorUtils.buildException(ApplicationError.AUTHENTICATION_ERROR, "Verification not found");
+        }
+        User user = userRepository.findByPhoneNumber(loginForm.getPhoneNumber())
+                .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
+        checkUserStatus(user);
+        user.setPassword(this.passwordEncoder.encode(loginForm.getPassword()));
+        verificationService.deleteRecord(loginForm.getPhoneNumber());
+        return userRepository.save(user);
+    }
+
+    private void checkUserStatus(User user) {
         if (user.isBlocked()) {
             throw ErrorUtils.buildException(ApplicationError.USER_IS_BLOCKED);
         }
         if (!user.isActive()) {
             throw ErrorUtils.buildException(ApplicationError.USER_IS_BLOCKED, "User not activated");
         }
-        return user;
+        if (user.isRemoved()) {
+            throw ErrorUtils.buildException(ApplicationError.USER_IS_BLOCKED, "User removed");
+        }
     }
 
     public Set<UUID> findAllowedChatIds(UUID userID) {
@@ -83,7 +115,7 @@ public class UserService {
             throw ErrorUtils.buildException(ApplicationError.USER_EXISTS);
         }
         if (!verificationService.isVerified(body.getPhoneNumber())) {
-            throw ErrorUtils.buildException(ApplicationError.BUSINESS_LOGIC_ERROR, "Phone not verified");
+            throw ErrorUtils.buildException(ApplicationError.BUSINESS_LOGIC_ERROR, "Phone not verified or verification expired");
         }
         verificationService.deleteRecord(body.getPhoneNumber());
         User user = new User();

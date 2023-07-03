@@ -79,7 +79,7 @@ public class User implements UserForAuth {
     @Column(name = "activation_code")
     private String activationCode;
 
-    @Column(name = "email")
+    @Column(name = "email", unique = true)
     private String email;
 
     @Column(name = "is_email_confirmed")

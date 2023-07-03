@@ -4,6 +4,7 @@ import lombok.Data;
 import ru.bogatov.quickmeet.model.enums.VerificationSourceType;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -27,4 +28,7 @@ public class VerificationRecord {
 
     @Column(name = "code", nullable = false, length = 4)
     private String activationCode;
+
+    @Column(name = "actual_to")
+    private LocalDateTime actualTo;
 }

@@ -1,5 +1,6 @@
 package ru.bogatov.quickmeet.service.auth;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.bogatov.quickmeet.entity.auth.VerificationRecord;
@@ -12,12 +13,14 @@ import ru.bogatov.quickmeet.repository.auth.PhoneVerificationRecordRepository;
 import ru.bogatov.quickmeet.model.response.VerificationResponse;
 import ru.bogatov.quickmeet.repository.userdata.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
 
 import static ru.bogatov.quickmeet.constant.AuthConstants.*;
 
 @Service
+@Slf4j
 public class VerificationService {
 
     private final PhoneVerificationRecordRepository verificationRecordRepository;
@@ -36,11 +39,12 @@ public class VerificationService {
             if (body.getVerificationType().equals(VerificationSourceType.MAIL) && body.getVerificationStep().equals(VerificationStep.REGISTRATION)) {
                 throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Type Mail and Step Registration not applicable");
             }
+            String code;
             switch (body.getVerificationStep()) {
                 case REGISTRATION:
-                    createOrUpdateExistingRecord(body.getSource(), body.getVerificationType(), true);
+                    code = createOrUpdateExistingRecordForRegistration(body.getSource(), body.getVerificationType(), true);
                 case VERIFICATION:
-                    createOrUpdateExistingRecord(body.getSource(), body.getVerificationType(), false);
+                    code = createOrUpdateExistingRecordForVerification(body.getSource(), body.getVerificationType(), true);
             }
             //todo send code
             return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(true).message(MESSAGE_CODE_SENT).build();
@@ -52,6 +56,10 @@ public class VerificationService {
     public boolean isVerified(String source) {
         try {
             VerificationRecord record = verificationRecordRepository.findBySource(source).orElseThrow(() -> ErrorUtils.buildException(ApplicationError.COMMON_ERROR));
+            if (record.getActualTo() == null || record.getActualTo().isBefore(LocalDateTime.now())) {
+                log.debug("record with source {} not actual", record.getSource());
+                return false;
+            }
             return record.getIsVerified() && VerificationSourceType.PHONE.equals(record.getType());
         } catch (RuntimeException e) {
             return false;
@@ -65,6 +73,7 @@ public class VerificationService {
         }
         if (record.getActivationCode().equals(body.getCode())) {
             record.setIsVerified(true);
+            record.setActualTo(LocalDateTime.now().plusMinutes(2)); //todo move magic number to properties
             verificationRecordRepository.save(record);
             return VerificationResponse.builder().step(STEP_CODE_VERIFY).isSuccess(true).message(MESSAGE_CODE_VERIFIED).build();
         }
@@ -85,15 +94,33 @@ public class VerificationService {
         }
     }
 
-    private void createOrUpdateExistingRecord(String source, VerificationSourceType type, boolean checkExistingCustomer) {
+    private String createOrUpdateExistingRecordForRegistration(String source, VerificationSourceType type, boolean checkExistingCustomer) {
         if (checkExistingCustomer && userRepository.isUserExistWithPhoneNumber(source).isPresent()) {
             throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Phone number already registered");
         }
+        return createOrUpdateRecord(source, type);
+    }
+
+    private String createOrUpdateExistingRecordForVerification(String source, VerificationSourceType type, boolean checkExistingCustomer) {
+        switch (type) {
+            case MAIL:
+                if (checkExistingCustomer && userRepository.isUserExistWithMail(source).isEmpty()) {
+                    throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "User with mail not found");
+                }
+            case PHONE:
+                if (checkExistingCustomer && userRepository.isUserExistWithPhoneNumber(source).isEmpty()) {
+                    throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "User with phone not found");
+                }
+        }
+        return createOrUpdateRecord(source, type);
+    }
+
+    private String createOrUpdateRecord(String source, VerificationSourceType type) {
         Optional<VerificationRecord> existingRecord = verificationRecordRepository.findBySource(source);
         VerificationRecord record;
         if (existingRecord.isPresent()) {
             record = existingRecord.get();
-            if (Boolean.TRUE.equals(record.getIsVerified())) {
+            if (Boolean.TRUE.equals(record.getIsVerified()) && record.getActualTo() != null && LocalDateTime.now().isBefore(record.getActualTo())) {
                 throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Record already verified");
             }
         } else {
@@ -102,8 +129,14 @@ public class VerificationService {
             record.setType(type);
             record.setSource(source);
         }
-        record.setActivationCode(generateCode());
+        String code = generateCode();
+        record.setActivationCode(code);
+        if (record.getActualTo() != null) {
+            record.setActualTo(null);
+            record.setIsVerified(false);
+        }
         verificationRecordRepository.save(record);
+        return code;
     }
 
 

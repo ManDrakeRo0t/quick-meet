@@ -10,6 +10,7 @@ import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
+import ru.bogatov.quickmeet.model.request.LoginAfterVerificationForm;
 import ru.bogatov.quickmeet.model.request.LoginForm;
 import ru.bogatov.quickmeet.model.request.RegistrationBody;
 import ru.bogatov.quickmeet.model.response.AuthenticationResponse;
@@ -48,6 +49,22 @@ public class AuthenticationService {
 
     public AuthenticationResponse login(LoginForm body) {
         User user = userService.findActiveAndAvailableUserByPhoneAndPassword(body);
+        return AuthenticationResponse.builder()
+                .user(user)
+                .payload(getTokens(user))
+                .build();
+    }
+
+    public AuthenticationResponse loginAfterVerification(String phoneNumber) {
+        User user = userService.findActiveAndAvailableUserByPhoneAndCheckVerification(phoneNumber);
+        return AuthenticationResponse.builder()
+                .user(user)
+                .payload(getTokens(user))
+                .build();
+    }
+
+    public AuthenticationResponse resetPassword(LoginForm body) {
+        User user = userService.findUserAndResetPassword(body);
         return AuthenticationResponse.builder()
                 .user(user)
                 .payload(getTokens(user))

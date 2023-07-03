@@ -8,9 +8,9 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        generate_statistics: true # only for development
+#    properties:
+#      hibernate:
+#        generate_statistics: true # only for development
   application:
     name : "quick-meet"
   mvc:
@@ -33,8 +33,8 @@ spring:
 logging:
   pattern:
     console: "%C{1.} [%-5level] %d{HH:mm:ss} - %msg%n"
-  level:
-    org.hibernate.stat : DEBUG # only for development
+#  level:
+#    org.hibernate.stat : DEBUG # only for development
 
 management:
   endpoints.web.exposure.include: 'prometheus, health'

@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByPhoneNumber(String phoneNumber);
     @Query(nativeQuery = true, value = "select cast(id as varchar) as id from usr where phone_number = :phoneNumber")
     Optional<UUID> isUserExistWithPhoneNumber(@Param(value = "phoneNumber") String phoneNumber);
+    @Query(nativeQuery = true, value = "select cast(id as varchar) as id from usr where email = :mail")
+    Optional<UUID> isUserExistWithMail(@Param(value = "mail") String mail);
     @Query(value = "select cast(u.id as varchar) as id, u.account_class, u.phone_number, u.refresh,u.is_active, u.password, u.is_blocked, u.role " +
             "from usr u " +
             "where u.id = ?1", nativeQuery = true)
