@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.bogatov.quickmeet.constant.RouteConstants;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
+import ru.bogatov.quickmeet.model.request.UserUpdateBody;
 import ru.bogatov.quickmeet.service.meet.MeetService;
 import ru.bogatov.quickmeet.service.user.UserService;
 
@@ -26,6 +27,11 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable UUID id) {
         return ResponseEntity.ok(userService.findUserByID(id));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody UserUpdateBody body) {
+        return ResponseEntity.ok(userService.updateUser(id, body));
     }
 
     @PostMapping("/list")

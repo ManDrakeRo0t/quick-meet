@@ -25,6 +25,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query(value = "update usr set refresh = :refresh_token where id = :id", nativeQuery = true)
     void updateRefreshToken(@Param("id") UUID id, @Param("refresh_token") String refresh);
 
+    @Modifying
+    @Query(value = "update usr set is_email_confirmed = :isConfirmed where email = :mail", nativeQuery = true)
+    void setMailConfirmation(@Param("mail") String mail, @Param("isConfirmed") boolean isConfirmed);
+
     @Query(nativeQuery = true, value = "select cast(guest.meet_id as varchar) from guest where user_id = :userId union all select cast(meet.id as varchar) from meet where user_id = :userId")
     Set<UUID> getAllApplicableChats(@Param("userId") UUID userId);
 

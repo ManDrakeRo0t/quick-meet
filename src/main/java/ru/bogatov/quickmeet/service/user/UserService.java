@@ -9,8 +9,8 @@ import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.Role;
-import ru.bogatov.quickmeet.model.request.LoginAfterVerificationForm;
 import ru.bogatov.quickmeet.model.request.LoginForm;
+import ru.bogatov.quickmeet.model.request.UserUpdateBody;
 import ru.bogatov.quickmeet.repository.userdata.UserRepository;
 import ru.bogatov.quickmeet.model.request.RegistrationBody;
 import ru.bogatov.quickmeet.service.auth.VerificationService;
@@ -42,6 +42,28 @@ public class UserService {
     public User findUserByPhoneNumber(String phoneNumber) {
         return userRepository.findByPhoneNumber(phoneNumber)
                 .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
+    }
+
+    public User updateUser(UUID id, UserUpdateBody body) {
+        User user = findUserByID(id);
+        checkUserStatus(user);
+        if (!body.getEmail().isEmpty()) {
+            user.setEmailConfirmed(false);
+            user.setEmail(body.getEmail());
+        }
+        if (!body.getFirstName().isEmpty()) {
+            user.setFirstName(body.getFirstName());
+        }
+        if (!body.getSecondName().isEmpty()) {
+            user.setSecondName(body.getSecondName());
+        }
+        if (!body.getDescription().isEmpty()) {
+            user.setDescription(body.getDescription());
+        }
+        if (body.isDeleted()) {
+            user.setRemoved(true);
+        }
+        return saveUser(user);
     }
 
     public User findUserByID(UUID id) {

@@ -3,6 +3,7 @@ package ru.bogatov.quickmeet.service.auth;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.entity.auth.VerificationRecord;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.error.ErrorUtils;
@@ -43,8 +44,10 @@ public class VerificationService {
             switch (body.getVerificationStep()) {
                 case REGISTRATION:
                     code = createOrUpdateExistingRecordForRegistration(body.getSource(), body.getVerificationType(), true);
+                    break;
                 case VERIFICATION:
                     code = createOrUpdateExistingRecordForVerification(body.getSource(), body.getVerificationType(), true);
+                    break;
             }
             //todo send code
             return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(true).message(MESSAGE_CODE_SENT).build();
@@ -65,16 +68,23 @@ public class VerificationService {
             return false;
         }
     }
-
+    @Transactional
     public VerificationResponse confirmVerification(VerificationBody body) {
         VerificationRecord record = findBySource(body.getSource());
         if (Boolean.TRUE.equals(record.getIsVerified())) {
             return VerificationResponse.builder().step(STEP_CODE_VERIFY).isSuccess(true).message(MESSAGE_CODE_ALREADY_VERIFIED).build();
         }
         if (record.getActivationCode().equals(body.getCode())) {
-            record.setIsVerified(true);
-            record.setActualTo(LocalDateTime.now().plusMinutes(2)); //todo move magic number to properties
-            verificationRecordRepository.save(record);
+            switch (body.getVerificationType()) {
+                case PHONE:
+                    record.setIsVerified(true);
+                    record.setActualTo(LocalDateTime.now().plusMinutes(2)); //todo move magic number to properties
+                    verificationRecordRepository.save(record);
+                    break;
+                case MAIL:
+                    userRepository.setMailConfirmation(body.getSource(), true);
+                    deleteRecord(body.getSource());
+            }
             return VerificationResponse.builder().step(STEP_CODE_VERIFY).isSuccess(true).message(MESSAGE_CODE_VERIFIED).build();
         }
         return VerificationResponse.builder().step(STEP_CODE_VERIFY).isSuccess(false).message(MESSAGE_CODE_NOT_VERIFIED).build();
@@ -107,6 +117,7 @@ public class VerificationService {
                 if (checkExistingCustomer && userRepository.isUserExistWithMail(source).isEmpty()) {
                     throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "User with mail not found");
                 }
+                break;
             case PHONE:
                 if (checkExistingCustomer && userRepository.isUserExistWithPhoneNumber(source).isEmpty()) {
                     throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "User with phone not found");

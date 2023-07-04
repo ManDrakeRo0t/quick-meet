@@ -12,4 +12,5 @@ public enum MeetStatus {
     MeetStatus(String value) {
         this.value = value;
     }
+
 }
