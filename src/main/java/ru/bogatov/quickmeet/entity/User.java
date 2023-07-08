@@ -8,6 +8,7 @@ import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.Role;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
@@ -16,7 +17,9 @@ import java.util.UUID;
 @Getter
 @Setter
 @Table(name ="usr", indexes = @Index(name = "phone_number_index", columnList = "phone_number", unique = true))
-public class User implements UserForAuth {
+public class User implements UserForAuth, Serializable {
+
+    private static final long serialVersionUID = 678754657547L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -48,7 +51,7 @@ public class User implements UserForAuth {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "city_id")
     private City city;
 
@@ -85,7 +88,7 @@ public class User implements UserForAuth {
     @Column(name = "is_email_confirmed")
     private boolean isEmailConfirmed;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     private BillingAccount billingAccount;
 
     @Column(name = "registration_date")

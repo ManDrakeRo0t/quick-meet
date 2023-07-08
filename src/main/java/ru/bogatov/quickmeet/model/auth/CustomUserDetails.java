@@ -9,7 +9,10 @@ import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 import ru.bogatov.quickmeet.model.enums.Role;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
+
 @Data
 @Builder
 public class CustomUserDetails implements UserDetails {
@@ -18,6 +21,7 @@ public class CustomUserDetails implements UserDetails {
     private boolean isActive;
     private Set<Role> roleSet;
     private boolean isBlocked;
+    private UUID userId;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -60,7 +64,17 @@ public class CustomUserDetails implements UserDetails {
                 .isBlocked(user.isBlocked())
                 .password(user.getPassword())
                 .phoneNumber(user.getPhoneNumber())
-                .roleSet(Set.of(user.getRole()))
+                .roleSet(getRoleSet(user.getRole()))
+                .userId(user.getId())
                 .build();
+    }
+
+    private static Set<Role> getRoleSet(Role role) {
+        Set<Role> roles = new HashSet<>();
+        if (Role.ADMIN == role) {
+            roles.add(role);
+        }
+        roles.add(Role.USER);
+        return roles;
     }
 }

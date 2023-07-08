@@ -1,10 +1,15 @@
 package ru.bogatov.quickmeet.service.user;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.entity.auth.UserForAuth;
+import ru.bogatov.quickmeet.model.auth.CustomUserDetails;
 import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.error.ErrorUtils;
@@ -18,22 +23,26 @@ import ru.bogatov.quickmeet.service.util.CityService;
 
 import java.util.*;
 
+import static ru.bogatov.quickmeet.constant.CacheConstants.USERS_CACHE;
 import static ru.bogatov.quickmeet.constant.UserConstants.USER_LIST;
 
 @Service
+@Slf4j
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CityService cityService;
     private final VerificationService verificationService;
+    private final CacheManager cacheManager;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CityService cityService, VerificationService verificationService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CityService cityService, VerificationService verificationService, CacheManager cacheManager) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.cityService = cityService;
         this.verificationService = verificationService;
+        this.cacheManager = cacheManager;
     }
-
+    // no need after caches
     public UserForAuth findUserForAuthById(UUID id) {
         return userRepository.findByPhoneNumberForAuth(id)
                 .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
@@ -47,36 +56,62 @@ public class UserService {
     public User updateUser(UUID id, UserUpdateBody body) {
         User user = findUserByID(id);
         checkUserStatus(user);
-        if (!body.getEmail().isEmpty()) {
+        if (body.getEmail() != null && !body.getEmail().isEmpty()) {
             user.setEmailConfirmed(false);
             user.setEmail(body.getEmail());
         }
-        if (!body.getFirstName().isEmpty()) {
+        if (body.getFirstName() != null && !body.getFirstName().isEmpty()) {
             user.setFirstName(body.getFirstName());
         }
-        if (!body.getSecondName().isEmpty()) {
+        if (body.getSecondName() != null && !body.getSecondName().isEmpty()) {
             user.setSecondName(body.getSecondName());
         }
-        if (!body.getDescription().isEmpty()) {
+        if (body.getDescription() != null && !body.getDescription().isEmpty()) {
             user.setDescription(body.getDescription());
         }
         if (body.isDeleted()) {
             user.setRemoved(true);
         }
-        return saveUser(user);
+        if (body.getRole() != null) {
+            if (!((CustomUserDetails) SecurityContextHolder.getContext()
+                    .getAuthentication()
+                    .getPrincipal()).getRoleSet().contains(Role.ADMIN)) {
+                throw ErrorUtils.buildException(ApplicationError.AUTHENTICATION_ERROR, "Only Admin can change role");
+            } else {
+                user.setRole(body.getRole());
+            }
+        }
+        return updateUser(user);
     }
-
+    @Cacheable(value = USERS_CACHE, key = "#id")
     public User findUserByID(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
     }
 
     public List<User> findUsersByIdsList(Map<String, Set<UUID>> body) {
-        return userRepository.findAllById(body.get(USER_LIST));
+        List<User> result = new ArrayList<>();
+        Set<UUID> requestList = body.get(USER_LIST);
+        Set<UUID> notFoundInCache = new HashSet<>();
+        //todo check for NPE where cache empty
+        requestList.forEach(uuid -> {
+            User user = cacheManager.getCache(USERS_CACHE).get(uuid, User.class);
+            if (user != null) {
+                result.add(user);
+            } else {
+                notFoundInCache.add(uuid);
+            }
+        });
+        List<User> userFormDb = userRepository.findAllById(notFoundInCache);
+        userFormDb.forEach(user -> cacheManager.getCache(USERS_CACHE).put(user.getId(), user));
+        result.addAll(userFormDb);
+        return result;
     }
-
-    public User saveUser(User user) {
-        return userRepository.save(user);
+    public User updateUser(User user) {
+        //todo why @CachePut not working??
+        User updatedUser = userRepository.save(user);
+        cacheManager.getCache(USERS_CACHE).put(updatedUser.getId(), updatedUser);
+        return updatedUser;
     }
 
     public void updateRefreshToken(UUID id, String refreshToken) {
@@ -111,9 +146,12 @@ public class UserService {
         User user = userRepository.findByPhoneNumber(loginForm.getPhoneNumber())
                 .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
         checkUserStatus(user);
+        if (this.passwordEncoder.matches(loginForm.getPassword(), user.getPassword())) {
+            throw ErrorUtils.buildException(ApplicationError.AUTHENTICATION_ERROR, "Old password match new one");
+        }
         user.setPassword(this.passwordEncoder.encode(loginForm.getPassword()));
         verificationService.deleteRecord(loginForm.getPhoneNumber());
-        return userRepository.save(user);
+        return updateUser(user);
     }
 
     private void checkUserStatus(User user) {
@@ -139,6 +177,9 @@ public class UserService {
         if (!verificationService.isVerified(body.getPhoneNumber())) {
             throw ErrorUtils.buildException(ApplicationError.BUSINESS_LOGIC_ERROR, "Phone not verified or verification expired");
         }
+        if (new Date().before(body.getBirthDate())) {
+            throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Birth date in future not allowed");
+        }
         verificationService.deleteRecord(body.getPhoneNumber());
         User user = new User();
         user.setCity(cityService.createOrGetExisting(body.getCityId(), body.getCityName()));
@@ -155,13 +196,12 @@ public class UserService {
         user.setBirthDate(body.getBirthDate());
         user.setRegistrationDate(new Date());
         user.setRole(Role.USER);
-        if (Boolean.TRUE.equals(body.getIsAdmin())) { //todo fix it
-            user.setRole(Role.ADMIN);
-        }
         user.setBlocked(false);
         user.setActive(true);
         user.setBlocked(false);
-        return userRepository.save(user);
+        User createdUser = userRepository.save(user);
+        cacheManager.getCache(USERS_CACHE).put(createdUser.getId(), createdUser);
+        return createdUser;
     }
 
     public boolean isUserExists(String phone) {

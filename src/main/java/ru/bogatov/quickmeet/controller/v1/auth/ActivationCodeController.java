@@ -18,13 +18,8 @@ public class ActivationCodeController {
 
     @PostMapping("/send")
     public ResponseEntity sendActivationCode(@RequestBody VerificationBody body) {
-        return ResponseEntity.ok(verificationService.startVerification(body)); // создание записи PhoneNumberAсtivationRecord
+        return ResponseEntity.ok(verificationService.startVerification(body));
     }
-
-//    @PostMapping("/refresh")
-//    public ResponseEntity refreshActivationCode(@RequestParam String phoneNumber) {
-//        return ResponseEntity.ok(null); // обновление записи PhoneNumberAсtivationRecord
-//    }
 
     @PostMapping("/confirm")
     public ResponseEntity confirmNumber(@RequestBody VerificationBody body) {

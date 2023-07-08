@@ -4,13 +4,16 @@ import lombok.Data;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Entity
 @Data
 @Table(name = "meet")
-public class Meet {
+public class Meet implements Serializable {
+
+    private static final long serialVersionUID = 672754457547L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

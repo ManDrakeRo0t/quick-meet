@@ -91,7 +91,7 @@ public class AuthenticationService {
             throw ErrorUtils.buildException(ApplicationError.AUTHENTICATION_ERROR, "Not able to validate refresh token");
         }
         String userId = jwtProvider.getUserIdFromToken(token);
-        UserForAuth user = userService.findUserForAuthById(UUID.fromString(userId));
+        UserForAuth user = userService.findUserByID(UUID.fromString(userId));
         if (user.getRefresh() != null && token.equals(user.getRefresh())) {
             Map<String,String> response = new HashMap<>();
             response.put(AuthConstants.TOKEN,jwtProvider.generateTokenForUser(user));

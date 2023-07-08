@@ -23,7 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public CustomUserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
         try {
-            UserForAuth user = userService.findUserForAuthById(UUID.fromString(userId));
+            UserForAuth user = userService.findUserByID(UUID.fromString(userId));
             return CustomUserDetails.fromUserToUserDetails(user);
         }catch (Exception e) {
             return  null;

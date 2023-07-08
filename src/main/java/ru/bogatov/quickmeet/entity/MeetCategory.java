@@ -3,12 +3,15 @@ package ru.bogatov.quickmeet.entity;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.UUID;
 
 @Entity
 @Data
 @Table(name = "meet_category")
-public class MeetCategory {
+public class MeetCategory implements Serializable {
+
+    private static final long serialVersionUID = 672763657547L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

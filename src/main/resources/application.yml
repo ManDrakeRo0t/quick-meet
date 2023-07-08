@@ -30,11 +30,24 @@ spring:
     serialization:
       fail-on-empty-beans: false
 
+  cache:
+    type: redis
+    redis:
+      time-to-live: 15m
+
+  redis:
+    host: localhost
+    port: 6379
+
 logging:
-  pattern:
-    console: "%C{1.} [%-5level] %d{HH:mm:ss} - %msg%n"
 #  level:
+#    org.springframework.data.*.* : trace
+#    org.springframework.cache.* : trace
 #    org.hibernate.stat : DEBUG # only for development
+  pattern:
+    console: "%d{HH:mm:ss} [%-5level] %C{1.} - %msg%n"
+
+
 
 management:
   endpoints.web.exposure.include: 'prometheus, health'
@@ -72,29 +85,3 @@ error:
 #logging.level.guru.springframework.controllers=DEBUG
 #logging.level.org.hibernate=ERROR
 
-#--------------region server-------------------
-
-
-
-#--------------region application--------------
-
-#mail.confirmation = false
-
-#client.endpoint = http://localhost:3000
-#backend.endpoint = http://localhost:8081
-#classpath:file-storage
-#upload.path = /Users/danilbogatov/IdeaProjects/DigitalWind/backend/src/main/resources/file-storage
-#upload.path = /Users/dmitry_yugai/IdeaProjects/DigitalWind/backend/src/main/resources/file-storage
-#upload.path = /Users/danilbogatov/Desktop/file-storage
-#upload.path = /app/file-storage
-
-#admin.login=test
-#admin.password=test
-
-#--------------region email-------------------- Digital-password dvjanclgkjullagi digital-wind-noreply@yandex.ru
-#spring.mail.host=smtp.yandex.ru
-#spring.mail.username=digital-wind-noreply@yandex.ru
-#spring.mail.password=dvjanclgkjullagi
-#spring.mail.port=465
-#spring.mail.protocol=smtps
-#mail.debug=false

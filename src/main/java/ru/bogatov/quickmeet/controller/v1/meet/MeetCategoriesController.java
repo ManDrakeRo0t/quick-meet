@@ -1,6 +1,7 @@
 package ru.bogatov.quickmeet.controller.v1.meet;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.bogatov.quickmeet.constant.RouteConstants;
 import ru.bogatov.quickmeet.entity.MeetCategory;
@@ -28,12 +29,12 @@ public class MeetCategoriesController {
     public ResponseEntity<List<MeetCategory>> getAllCategories(@RequestParam(required = false, defaultValue = "false") Boolean showHidden) {
         return ResponseEntity.ok(meetCategoryService.findAllByHidden(showHidden));
     }
-
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @PatchMapping("/{id}")
     public ResponseEntity<MeetCategory> updateCategoryById(@PathVariable UUID id, @RequestBody MeetCategory category) {
         return ResponseEntity.ok(meetCategoryService.updateCategory(id, category));
     }
-
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @PostMapping("")
     public ResponseEntity<MeetCategory> createCategory(@RequestBody MeetCategory category) {
         return ResponseEntity.ok(meetCategoryService.createCategory(category));

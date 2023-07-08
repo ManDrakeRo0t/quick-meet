@@ -1,6 +1,9 @@
 package ru.bogatov.quickmeet.service.meet;
 
 import io.netty.util.internal.StringUtil;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +25,10 @@ import ru.bogatov.quickmeet.service.user.UserService;
 import ru.bogatov.quickmeet.service.util.CityService;
 import ru.bogatov.quickmeet.service.util.MeetUtils;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static ru.bogatov.quickmeet.constant.CacheConstants.*;
 
 @Service
 public class MeetService {
@@ -35,14 +39,16 @@ public class MeetService {
     private final GuestService guestService;
     private final JwtProvider jwtProvider;
     private final MeetCategoryService meetCategoryService;
+    private final CacheManager cacheManager;
 
-    public MeetService(MeetRepository meetRepository, UserService userService, CityService cityService, GuestService guestService, JwtProvider jwtProvider, MeetCategoryService meetCategoryService) {
+    public MeetService(MeetRepository meetRepository, UserService userService, CityService cityService, GuestService guestService, JwtProvider jwtProvider, MeetCategoryService meetCategoryService, CacheManager cacheManager) {
         this.meetRepository = meetRepository;
         this.userService = userService;
         this.cityService = cityService;
         this.guestService = guestService;
         this.jwtProvider = jwtProvider;
         this.meetCategoryService = meetCategoryService;
+        this.cacheManager = cacheManager;
     }
 
     @Transactional
@@ -62,8 +68,9 @@ public class MeetService {
         meet.setRank(owner.getAccountRank());
         meet.setOwner(owner);
         meet.setCurrentPeople(1);
+        evictOwnerListCache(body.getOwnerId());
         return MeetModificationResponse.builder()
-                .meet(meetRepository.save(meet))
+                .meet(updateInCacheAndReturn(meet))
                 .token(jwtProvider.generateTokenForUser(owner))
                 .build();
     }
@@ -76,8 +83,9 @@ public class MeetService {
         MeetUtils.checkIsGuestApplicable(meet, userId);
         Guest guest = guestService.createGuest(meet, userId);
         MeetUtils.addGuest(meet, guest);
+        evictGuestListCache(userId);
         return MeetModificationResponse.builder()
-                .meet(meetRepository.save(meet))
+                .meet(updateInCacheAndReturn(meet))
                 .token(jwtProvider.generateTokenForUser(userId))
                 .build();
     }
@@ -88,14 +96,16 @@ public class MeetService {
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
         guestService.deleteGuest(MeetUtils.removeGuest(meet, userId));
         meet = meetRepository.save(meet);
+        evictGuestListCache(userId);
         return MeetModificationResponse.builder()
-                .meet(meetRepository.save(meet))
+                .meet(updateInCacheAndReturn(meet))
                 .token(jwtProvider.generateTokenForUser(userId))
                 .build();
     }
 
     @Transactional
     public Void updateGuest(UUID meetId, UUID guestId, boolean isAttend) {
+        cacheManager.getCache(MEET_CACHE).evict(meetId);
         guestService.updateGuest(guestId, isAttend);
         return null;
     }
@@ -107,16 +117,23 @@ public class MeetService {
         MeetUtils.removeGuest(meet, userId);
         MeetUtils.addUserToBlackList(meet, userId);
         meet = meetRepository.save(meet);
+        evictGuestListCache(userId);
         return MeetModificationResponse.builder()
-                .meet(meetRepository.save(meet))
+                .meet(updateInCacheAndReturn(meet))
                 .build();
     }
 
-    public List<Meet> search(SearchMeetBody body) {
+    private Meet updateInCacheAndReturn(Meet meet) {
+        Meet updatedMeet = meetRepository.save(meet);
+        cacheManager.getCache(MEET_CACHE).put(updatedMeet.getId(), updatedMeet);
+        return updatedMeet;
+    }
+
+    public Set<Meet> search(SearchMeetBody body) {
         Pair<Pair<Double, Double>, Pair<Double, Double>> border =
                 MeetUtils.calculateBorder(body.getLatitude(), body.getLongevity(), body.getRadius());
         List<String> stringStatuses = body.getStatuses().stream().map(MeetStatus::getValue).collect(Collectors.toList());
-        return meetRepository.searchMeet(stringStatuses,
+        Set<UUID> foundMeetIds = meetRepository.searchMeet(stringStatuses,
                 body.getCategories(),
                 border.getFirst().getFirst(),
                 border.getSecond().getFirst(),
@@ -125,18 +142,53 @@ public class MeetService {
                 body.getDateFrom(),
                 body.getDateTo()
         );
+        return findMeetListByIds(foundMeetIds);
     }
 
-    public List<Meet> findMeetListWhereUserGuest(UUID userId) {
+
+    public Set<Meet> findMeetListWhereUserGuest(UUID userId) {
+        Set<UUID> meetIds = findMeetIdsListWhereUserGuest(userId);
+        return findMeetListByIds(meetIds);
+    }
+
+    public Set<Meet> findMeetListWhereUserOwner(UUID userId) {
+        Set<UUID> meetIds = findMeetIdsListWhereUserOwner(userId);
+        return findMeetListByIds(meetIds);
+    }
+    @Cacheable(value = MEET_LIST_GUEST_CACHE, key = "#userId")
+    public Set<UUID> findMeetIdsListWhereUserGuest(UUID userId) {
+        return meetRepository.findMeetsIdWhereUserGuest(userId);
+    }
+    @Cacheable(value = MEET_LIST_OWNER_CACHE, key = "#userId")
+    public Set<UUID> findMeetIdsListWhereUserOwner(UUID userId) {
         return meetRepository.findMeetsIdWhereUserGuest(userId);
     }
 
-    public List<Meet> findMeetListWhereUserOwner(UUID userId) {
-        return meetRepository.findMeetsIdWhereUserOwner(userId);
+    private Set<Meet> findMeetListByIds(Set<UUID> ids) {
+        Set<Meet> result = new HashSet<>();
+        Set<UUID> notFoundInCache = new HashSet<>();
+        Cache meetCache = cacheManager.getCache(MEET_CACHE);
+        ids.forEach(uuid -> {
+            if (meetCache != null) {
+                Meet fromCache = meetCache.get(uuid, Meet.class);
+                if (fromCache != null) {
+                    result.add(fromCache);
+                } else {
+                    notFoundInCache.add(uuid);
+                }
+            }
+        });
+        List<Meet> foundInDb = meetRepository.findAllById(notFoundInCache);
+        foundInDb.forEach(meet -> {
+            meetCache.put(meet.getId(), meet);
+            result.add(meet);
+        });
+        return result;
     }
 
     @Transactional
     public Meet updateMeet(UUID id, MeetUpdateBody body) {
+        MeetUtils.validateMeetUpdate(body);
         Meet meet = this.findById(id);
         if (body.getStatus() != null) {
             MeetUtils.updateState(meet, body.getStatus());
@@ -145,7 +197,7 @@ public class MeetService {
         if (body.getCategoryId() != null) {
             setCategory(meet, body.getCategoryId());
         }
-        return meetRepository.save(meet);
+        return updateInCacheAndReturn(meet);
     }
 
     private void setCity(MeetCreationBody body, User owner, Meet meet) {
@@ -171,6 +223,15 @@ public class MeetService {
         meet.setCategory(meetCategoryService.findById(categoryId));
     }
 
+    private void evictOwnerListCache(UUID userId) {
+        cacheManager.getCache(MEET_LIST_OWNER_CACHE).evict(userId);
+    }
+
+    private void evictGuestListCache(UUID userId) {
+        cacheManager.getCache(MEET_LIST_GUEST_CACHE).evict(userId);
+    }
+
+    @Cacheable(value = MEET_CACHE, key = "#id")
     public Meet findById(UUID id) {
         return meetRepository.findById(id).orElseThrow(() -> ErrorUtils.buildException(ApplicationError.DATA_NOT_FOUND_ERROR, "Meet not found"));
     }

@@ -1,6 +1,7 @@
 package ru.bogatov.quickmeet.controller.v1.user;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.bogatov.quickmeet.constant.RouteConstants;
 import ru.bogatov.quickmeet.entity.Meet;
@@ -29,6 +30,7 @@ public class UserController {
         return ResponseEntity.ok(userService.findUserByID(id));
     }
 
+    @PreAuthorize("@customSecurityRules.isUserRequest(#id) || hasAnyAuthority('ADMIN')")
     @PatchMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody UserUpdateBody body) {
         return ResponseEntity.ok(userService.updateUser(id, body));
@@ -39,13 +41,15 @@ public class UserController {
         return ResponseEntity.ok(userService.findUsersByIdsList(body));
     }
 
+    @PreAuthorize("@customSecurityRules.isUserRequest(#id) || hasAnyAuthority('ADMIN')")
     @GetMapping("/{id}/meet-list/guest")
-    public ResponseEntity<List<Meet>> getMeetListWhereUserGuest(@PathVariable UUID id) {
+    public ResponseEntity<Set<Meet>> getMeetListWhereUserGuest(@PathVariable UUID id) {
         return ResponseEntity.ok(meetService.findMeetListWhereUserGuest(id));
     }
 
+    @PreAuthorize("@customSecurityRules.isUserRequest(#id) || hasAnyAuthority('ADMIN')")
     @GetMapping("/{id}/meet-list/owner")
-    public ResponseEntity<List<Meet>> getMeetListWhereUserOwner(@PathVariable UUID id) {
+    public ResponseEntity<Set<Meet>> getMeetListWhereUserOwner(@PathVariable UUID id) {
         return ResponseEntity.ok(meetService.findMeetListWhereUserOwner(id));
     }
 

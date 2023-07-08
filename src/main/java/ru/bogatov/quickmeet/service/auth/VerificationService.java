@@ -2,9 +2,12 @@ package ru.bogatov.quickmeet.service.auth;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.entity.auth.VerificationRecord;
+import ru.bogatov.quickmeet.model.auth.CustomUserDetails;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.VerificationSourceType;
@@ -17,8 +20,10 @@ import ru.bogatov.quickmeet.repository.userdata.UserRepository;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 import static ru.bogatov.quickmeet.constant.AuthConstants.*;
+import static ru.bogatov.quickmeet.constant.CacheConstants.USERS_CACHE;
 
 @Service
 @Slf4j
@@ -26,10 +31,12 @@ public class VerificationService {
 
     private final PhoneVerificationRecordRepository verificationRecordRepository;
     private final UserRepository userRepository;
+    private final CacheManager cacheManager;
 
-    public VerificationService(PhoneVerificationRecordRepository phoneVerificationRecordRepository, UserRepository userRepository) {
+    public VerificationService(PhoneVerificationRecordRepository phoneVerificationRecordRepository, UserRepository userRepository, CacheManager cacheManager) {
         this.verificationRecordRepository = phoneVerificationRecordRepository;
         this.userRepository = userRepository;
+        this.cacheManager = cacheManager;
     }
 
     @Value("${phone.confirmation.disable}")
@@ -82,6 +89,12 @@ public class VerificationService {
                     verificationRecordRepository.save(record);
                     break;
                 case MAIL:
+                    try {
+                        UUID userId = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUserId();
+                        cacheManager.getCache(USERS_CACHE).evict(userId);
+                    } catch (Exception e) {
+                        log.error("Failed to evict cache for user with mail : {}", body.getSource());
+                    }
                     userRepository.setMailConfirmation(body.getSource(), true);
                     deleteRecord(body.getSource());
             }

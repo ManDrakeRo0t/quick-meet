@@ -1,5 +1,7 @@
 package ru.bogatov.quickmeet.service.meet;
 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import ru.bogatov.quickmeet.entity.MeetCategory;
 import ru.bogatov.quickmeet.error.ErrorUtils;
@@ -9,27 +11,33 @@ import ru.bogatov.quickmeet.repository.meet.MeetCategoryRepository;
 import java.util.List;
 import java.util.UUID;
 
+import static ru.bogatov.quickmeet.constant.CacheConstants.MEET_CATEGORY_CACHE;
+
 @Service
 public class MeetCategoryService {
 
-    MeetCategoryRepository meetCategoryRepository;
+    private final MeetCategoryRepository meetCategoryRepository;
+    private final CacheManager cacheManager;
 
-    public MeetCategoryService(MeetCategoryRepository meetCategoryRepository) {
+    public MeetCategoryService(MeetCategoryRepository meetCategoryRepository, CacheManager cacheManager) {
         this.meetCategoryRepository = meetCategoryRepository;
+        this.cacheManager = cacheManager;
     }
 
     public MeetCategory createCategory(MeetCategory body) {
         body.setHidden(false);
-        return meetCategoryRepository.save(body);
+        MeetCategory meetCategory = meetCategoryRepository.save(body);
+        cacheManager.getCache(MEET_CATEGORY_CACHE).put(meetCategory.getId(), meetCategory);
+        return meetCategory;
     }
-
+    @Cacheable(value = MEET_CATEGORY_CACHE, key = "#returnHidden")
     public List<MeetCategory> findAllByHidden(boolean returnHidden) {
         if (returnHidden) {
             return meetCategoryRepository.findAll();
         }
         return meetCategoryRepository.findAllByHiddenFalse();
     }
-
+    @Cacheable(value = MEET_CATEGORY_CACHE, key = "#id")
     public MeetCategory findById(UUID id) {
         return meetCategoryRepository.findById(id).orElseThrow(() -> ErrorUtils.buildException(ApplicationError.DATA_NOT_FOUND_ERROR, "Meet category not found"));
     }
@@ -38,6 +46,8 @@ public class MeetCategoryService {
         MeetCategory source = findById(id);
         source.setHidden(body.isHidden());
         source.setName(body.getName());
-        return meetCategoryRepository.save(source);
+        MeetCategory meetCategory = meetCategoryRepository.save(source);
+        cacheManager.getCache(MEET_CATEGORY_CACHE).put(id, meetCategory);
+        return meetCategory;
     }
 }
