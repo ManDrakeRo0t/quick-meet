@@ -12,6 +12,7 @@ public class CacheConstants {
     public static final Set<String> CACHES_NAMES = Set.of(
             USERS_CACHE,
             MEET_CACHE,
+            MEET_CATEGORY_CACHE,
             MEET_LIST_GUEST_CACHE,
             MEET_LIST_OWNER_CACHE
     );

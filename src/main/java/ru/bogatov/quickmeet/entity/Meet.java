@@ -51,13 +51,19 @@ public class Meet implements Serializable {
     @Column(name = "longevity")
     private double longevity;
 
+    @Column(name = "expected_duration")
+    private int expectedDuration;
+
+    @Column(name = "attend_required")
+    private boolean attendRequired;
+
     @Column(name = "rank")
     private float rank;
 
-    @OneToMany(mappedBy = "meet", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "meet", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Guest> guests;
 
-    @ElementCollection(targetClass = UUID.class)
+    @ElementCollection(targetClass = UUID.class, fetch = FetchType.EAGER)
     private Set<UUID> userBlackList;
 
     @Enumerated(EnumType.STRING)

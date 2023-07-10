@@ -1,9 +1,12 @@
 package ru.bogatov.quickmeet.service.util;
 
 import org.springframework.data.util.Pair;
+import ru.bogatov.quickmeet.config.application.MeetCreationRuleProperties;
 import ru.bogatov.quickmeet.entity.Guest;
 import ru.bogatov.quickmeet.entity.Meet;
+import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.error.ErrorUtils;
+import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 import ru.bogatov.quickmeet.model.request.MeetCreationBody;
@@ -14,6 +17,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class MeetUtils {
 
@@ -63,11 +67,54 @@ public class MeetUtils {
         if (body.getTime().isBefore(LocalDateTime.now())) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet start date in past");
         }
+        if (body.getExpectedDuration() > 8 || body.getExpectedDuration() <= 0) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet expected duration should be between 1 - 8 hours");
+        }
+    }
+
+    public static void validateOwnerClassAndMeetPeriod(MeetCreationBody body, User owner, Set<Meet> existingMeets, MeetCreationRuleProperties properties) {
+        if (owner.getAccountRank() < properties.getRequiredRankForMeetCreation()) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Owner rank less required %f", properties.getRequiredRankForMeetCreation()));
+        }
+        int allowedCapacity = owner.getAccountClass() == AccountClass.BASE ? properties.baseMaxCapacity : properties.goldMaxCapacity;
+        if (body.getUserAmount() > allowedCapacity) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Allowed capacity is %d", allowedCapacity));
+        }
+        LocalDateTime dayToCreate = body.getTime();
+        Set<Meet> todayMeets = existingMeets.stream().filter(meet -> isSameDay(dayToCreate, meet.getDateTime())).filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED).collect(Collectors.toSet());
+        int meetLimit = owner.getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.goldLimit;
+        if (todayMeets.size() + 1 > meetLimit) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
+                    String.format("You can create only %d meets, you already created : %s", meetLimit,
+                            todayMeets.stream().map(Meet::getName).collect(Collectors.toSet())));
+        }
+        if (properties.validateCrossTime) {
+            todayMeets = todayMeets.stream().filter(meet -> meet.getMeetStatus() != MeetStatus.FINISHED).collect(Collectors.toSet());
+            LocalDateTime endTime = dayToCreate.plusHours(body.getExpectedDuration());
+            todayMeets.forEach(existingMeet -> {
+                LocalDateTime existingMeetEnd = existingMeet.getDateTime().plusHours(existingMeet.getExpectedDuration());
+                if (existingMeet.getDateTime().isBefore(endTime)) {
+                    throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
+                            String.format("Meet end time crosses with start time for another meet : %s", existingMeet.getName()));
+                }
+                if (existingMeetEnd.isAfter(dayToCreate)) {
+                    throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
+                            String.format("Meet start time crosses with ent time for another meet : %s", existingMeet.getName()));
+                }
+            });
+        }
+    }
+
+    public static boolean isSameDay(LocalDateTime today, LocalDateTime date) {
+        return today.getYear() == date.getYear() && today.getDayOfYear() == date.getDayOfYear();
     }
 
     public static void validateMeetUpdate(MeetUpdateBody body) {
-        if (body.getTime().isBefore(LocalDateTime.now())) {
+        if (body.getTime() != null && body.getTime().isBefore(LocalDateTime.now())) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet start date in past");
+        }
+        if (body.getExpectedDuration() > 8 || body.getExpectedDuration() <= 0) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet expected duration should be between 1 - 8 hours");
         }
     }
 

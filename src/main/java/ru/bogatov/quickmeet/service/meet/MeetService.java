@@ -7,6 +7,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.bogatov.quickmeet.config.application.MeetCreationRuleProperties;
 import ru.bogatov.quickmeet.config.security.JwtProvider;
 import ru.bogatov.quickmeet.entity.Guest;
 import ru.bogatov.quickmeet.entity.Meet;
@@ -14,10 +15,7 @@ import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
-import ru.bogatov.quickmeet.model.request.MeetCommonData;
-import ru.bogatov.quickmeet.model.request.MeetCreationBody;
-import ru.bogatov.quickmeet.model.request.MeetUpdateBody;
-import ru.bogatov.quickmeet.model.request.SearchMeetBody;
+import ru.bogatov.quickmeet.model.request.*;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
 import ru.bogatov.quickmeet.repository.meet.MeetRepository;
 import ru.bogatov.quickmeet.service.user.GuestService;
@@ -25,10 +23,12 @@ import ru.bogatov.quickmeet.service.user.UserService;
 import ru.bogatov.quickmeet.service.util.CityService;
 import ru.bogatov.quickmeet.service.util.MeetUtils;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.bogatov.quickmeet.constant.CacheConstants.*;
+import static ru.bogatov.quickmeet.constant.UserConstants.*;
 
 @Service
 public class MeetService {
@@ -40,8 +40,9 @@ public class MeetService {
     private final JwtProvider jwtProvider;
     private final MeetCategoryService meetCategoryService;
     private final CacheManager cacheManager;
+    private final MeetCreationRuleProperties meetCreationRuleProperties;
 
-    public MeetService(MeetRepository meetRepository, UserService userService, CityService cityService, GuestService guestService, JwtProvider jwtProvider, MeetCategoryService meetCategoryService, CacheManager cacheManager) {
+    public MeetService(MeetRepository meetRepository, UserService userService, CityService cityService, GuestService guestService, JwtProvider jwtProvider, MeetCategoryService meetCategoryService, CacheManager cacheManager, MeetCreationRuleProperties meetCreationRuleProperties) {
         this.meetRepository = meetRepository;
         this.userService = userService;
         this.cityService = cityService;
@@ -49,13 +50,18 @@ public class MeetService {
         this.jwtProvider = jwtProvider;
         this.meetCategoryService = meetCategoryService;
         this.cacheManager = cacheManager;
+        this.meetCreationRuleProperties = meetCreationRuleProperties;
     }
 
     @Transactional
     public MeetModificationResponse createNewMeet(MeetCreationBody body) {
         MeetUtils.validateMeetCreation(body);
-        Meet meet = new Meet();
         User owner = userService.findUserByID(body.getOwnerId());
+        Set<Meet> existingMeets = findMeetListWhereUserOwner(owner.getId());
+        if (meetCreationRuleProperties.useRule) {
+            MeetUtils.validateOwnerClassAndMeetPeriod(body, owner, existingMeets, meetCreationRuleProperties);
+        }
+        Meet meet = new Meet();
         setCity(body, owner, meet);
         setCommonData(meet, body);
         setCategory(meet, body.getCategoryId());
@@ -63,7 +69,9 @@ public class MeetService {
         meet.setRatingProcessed(false);
         meet.setAddress(body.getAddress());
         meet.setLongevity(body.getLongevity());
+        meet.setAttendRequired(body.isAttendRequired());
         meet.setMaxPeople(body.getUserAmount());
+        meet.setExpectedDuration(body.getExpectedDuration());
         meet.setMeetStatus(MeetStatus.PLANNED);
         meet.setRank(owner.getAccountRank());
         meet.setOwner(owner);
@@ -161,7 +169,7 @@ public class MeetService {
     }
     @Cacheable(value = MEET_LIST_OWNER_CACHE, key = "#userId")
     public Set<UUID> findMeetIdsListWhereUserOwner(UUID userId) {
-        return meetRepository.findMeetsIdWhereUserGuest(userId);
+        return meetRepository.findMeetsIdWhereUserOwner(userId);
     }
 
     private Set<Meet> findMeetListByIds(Set<UUID> ids) {
@@ -187,17 +195,98 @@ public class MeetService {
     }
 
     @Transactional
+    public Meet updateMeetStatus(UUID id, MeetUpdateStatusBody body) {
+        Meet meet = this.findById(id);
+        if (body.getTargetState() != null) {
+            MeetUtils.updateState(meet, body.getTargetState());
+        }
+        if (MeetStatus.FINISHED == body.getTargetState() && !meet.isRatingProcessed()) {
+            processRatingUpdate(meet);
+            meet.setRatingProcessed(true);
+        }
+        return updateInCacheAndReturn(meet);
+    }
+
+    private void processRatingUpdate(Meet meet) {
+        User owner = meet.getOwner();
+        updateOwnerRank(meet, owner);
+        meet.getGuests().forEach(guest -> updateGuestRank(meet, guest));
+    }
+
+    private void updateOwnerRank(Meet meet, User owner) {
+        float currentRank = owner.getAccountRank();
+        if (currentRank == MAX_RANK) {
+            return;
+        }
+        float updatedRank = currentRank;
+        if (meet.getGuests() != null && !meet.getGuests().isEmpty()) {
+            if (meet.isAttendRequired()) {
+                long attendedGuests = meet.getGuests().stream().filter(Guest::isAttend).count();
+                updatedRank += attendedGuests * RANK_UPDATE_DELTA;
+            } else {
+                updatedRank += RANK_UPDATE_DELTA;
+            }
+        }
+        updatedRank = Math.min(updatedRank, MAX_RANK);
+        if (updatedRank != currentRank) {
+            owner.setAccountRank(updatedRank);
+            userService.updateUser(owner);
+        }
+    }
+
+    private void updateGuestRank(Meet meet, Guest guest) {
+        User user = userService.findUserByID(guest.getUserId());
+        int attendSeries = user.getAttendSeries();
+        int missSeries = user.getMissSeries();
+        float updatedRank = user.getAccountRank();
+        if (guest.isAttend()) {
+            attendSeries += 1;
+            missSeries = 0;
+        } else {
+            missSeries +=1;
+            attendSeries = 0;
+        }
+        if (meet.isAttendRequired() && !guest.isAttend()) {
+            updatedRank -= missSeries * RANK_UPDATE_DELTA;
+            if (updatedRank < MIN_RANK) {
+                updatedRank = MIN_RANK;
+            }
+         } else if (guest.isAttend()) {
+            updatedRank += attendSeries * RANK_UPDATE_DELTA;
+            if (updatedRank > MAX_RANK) {
+                updatedRank = MAX_RANK;
+            }
+        }
+        user.setAccountRank(updatedRank);
+        user.setAttendSeries(attendSeries);
+        user.setMissSeries(missSeries);
+        userService.updateUser(user);
+    }
+
+    @Transactional
     public Meet updateMeet(UUID id, MeetUpdateBody body) {
         MeetUtils.validateMeetUpdate(body);
         Meet meet = this.findById(id);
-        if (body.getStatus() != null) {
-            MeetUtils.updateState(meet, body.getStatus());
-        }
+        MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
         setCommonData(meet, body);
+        meet.setExpectedDuration(body.getExpectedDuration());
         if (body.getCategoryId() != null) {
             setCategory(meet, body.getCategoryId());
         }
         return updateInCacheAndReturn(meet);
+    }
+    @Transactional
+    public void changeStatusPlannedToActive() {
+        meetRepository.updateStatusPlannedToActive(LocalDateTime.now());
+        cacheManager.getCache(MEET_CACHE).clear();
+    }
+
+    @Transactional
+    public void changeStatusActiveToFinished(int limit) {
+        MeetUpdateStatusBody body = new MeetUpdateStatusBody();
+        body.setTargetState(MeetStatus.FINISHED);
+        Set<UUID> meetIds = meetRepository.findMeedIdsShouldBeFinished(limit, LocalDateTime.now());
+        meetIds.parallelStream().forEach(id -> updateMeetStatus(id, body));
     }
 
     private void setCity(MeetCreationBody body, User owner, Meet meet) {

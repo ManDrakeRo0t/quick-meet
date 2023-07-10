@@ -59,6 +59,20 @@ management:
       percentiles-histogram:
         "[http.server.requests]": false # true
 
+application:
+  meet-status-job : true
+  meet-job-limit : 100
+  meet-creation :
+    use-rule : true
+    validate-cross-time : true
+    required-rank : 2.0
+    gold-account :
+      meet-limit-per-day : 10
+      meet-max-capacity : 1000
+    base-account :
+      meet-limit-per-day: 2
+      meet-max-capacity: 10
+
 
 jwt:
   secret: test-secret

@@ -27,4 +27,8 @@ public class MeetCreationBody implements MeetCommonData{
     double latitude;
     @NotNull
     double longevity;
+    @NotNull
+    boolean attendRequired;
+    @NotNull
+    private int expectedDuration;
 }

@@ -28,6 +28,7 @@ public class MeetCategoryService {
         body.setHidden(false);
         MeetCategory meetCategory = meetCategoryRepository.save(body);
         cacheManager.getCache(MEET_CATEGORY_CACHE).put(meetCategory.getId(), meetCategory);
+        cacheManager.getCache(MEET_CATEGORY_CACHE).evict("false");
         return meetCategory;
     }
     @Cacheable(value = MEET_CATEGORY_CACHE, key = "#returnHidden")
@@ -48,6 +49,8 @@ public class MeetCategoryService {
         source.setName(body.getName());
         MeetCategory meetCategory = meetCategoryRepository.save(source);
         cacheManager.getCache(MEET_CATEGORY_CACHE).put(id, meetCategory);
+        cacheManager.getCache(MEET_CATEGORY_CACHE).evict("true");
+        cacheManager.getCache(MEET_CATEGORY_CACHE).evict("false");
         return meetCategory;
     }
 }

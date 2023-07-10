@@ -8,6 +8,7 @@ import ru.bogatov.quickmeet.constant.RouteConstants;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.model.request.MeetCreationBody;
 import ru.bogatov.quickmeet.model.request.MeetUpdateBody;
+import ru.bogatov.quickmeet.model.request.MeetUpdateStatusBody;
 import ru.bogatov.quickmeet.model.request.SearchMeetBody;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
 import ru.bogatov.quickmeet.service.meet.MeetService;
@@ -33,6 +34,12 @@ public class MeetController {
     @PatchMapping("/{id}")
     public ResponseEntity<Meet> updateMeetById(@PathVariable UUID id, @RequestBody MeetUpdateBody body) {
         return ResponseEntity.ok(meetService.updateMeet(id, body));
+    }
+
+    @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Meet> updateMeetStatusById(@PathVariable UUID id, @RequestBody MeetUpdateStatusBody body) {
+        return ResponseEntity.ok(meetService.updateMeetStatus(id, body));
     }
 
     @PostMapping("")

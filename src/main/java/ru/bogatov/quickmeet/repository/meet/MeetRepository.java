@@ -2,6 +2,7 @@ package ru.bogatov.quickmeet.repository.meet;
 
 import io.micrometer.core.annotation.Timed;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import ru.bogatov.quickmeet.entity.Meet;
 
@@ -20,6 +21,12 @@ public interface MeetRepository extends JpaRepository<Meet, UUID> {
 
     @Query(nativeQuery = true, value = "select cast(id as varchar) as id from meet where user_id = ?1")
     Set<UUID> findMeetsIdWhereUserOwner(UUID userId);
+
+    @Modifying
+    @Query(nativeQuery = true, value = "update meet set meet_status = 'ACTIVE' where meet_status = 'PLANNED' and date_time < :now")
+    void updateStatusPlannedToActive(LocalDateTime now);
+    @Query(nativeQuery = true, value = "select cast(id as varchar) from meet where meet_status = 'ACTIVE' and date_time + interval '1 hour' * expected_duration < :now limit :limit")
+    Set<UUID> findMeedIdsShouldBeFinished(int limit ,LocalDateTime now);
 
 
 }
