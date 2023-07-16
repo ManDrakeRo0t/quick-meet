@@ -36,7 +36,7 @@ public class FileService {
     public File saveFile(MultipartFile file) {
         try {
             Path path = getPathForFile(file);
-            minioService.upload(getPathForFile(file), file.getInputStream(), file.getContentType());
+            minioService.upload(path, file.getInputStream(), file.getContentType());
             File toSave = new File();
             toSave.setFileName(path.toString());
             toSave.setHref(generateHrefToFile(path.toString()));
