@@ -76,4 +76,7 @@ public class Meet implements Serializable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private MeetCategory category;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    private File avatar;
 }

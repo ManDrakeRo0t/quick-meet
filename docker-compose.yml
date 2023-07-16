@@ -18,18 +18,36 @@ services:
     ports:
       - "6379:6379"
 
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: "admin"
+      MINIO_ROOT_PASSWORD: "admin1234"
+      MINIO_ACCESS_KEY: "admin"
+      MINIO_SECRET_KEY: "admin1234"
+    volumes:
+      - ./data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address :9001
+
+
   core-app:
     build: .
     ports:
       - "8080:8080"
     depends_on:
       - postgres
+      - redis
+      - minio
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quick-meet
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 1234
       SPRING_REDIS_HOST : redis
       SPRING_REDIS_PORT : 6379
+      SPRING_MINIO_URL : http://minio:9000
 
 
 #  prometheus:
@@ -49,3 +67,4 @@ services:
 
 volumes:
   postgres-data:
+  minio:

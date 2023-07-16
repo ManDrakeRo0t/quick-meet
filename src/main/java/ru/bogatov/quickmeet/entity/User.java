@@ -91,6 +91,9 @@ public class User implements UserForAuth, Serializable {
     @OneToOne(fetch = FetchType.EAGER)
     private BillingAccount billingAccount;
 
+    @OneToOne(fetch = FetchType.EAGER)
+    private File avatar;
+
     @Column(name = "registration_date")
     private Date registrationDate;
 

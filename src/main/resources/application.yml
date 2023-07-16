@@ -4,6 +4,8 @@ server:
   port: 8080
 
 spring:
+  main:
+    allow-circular-references: true
   jpa:
     hibernate:
       ddl-auto: update
@@ -39,6 +41,14 @@ spring:
     host: localhost
     port: 6379
 
+  minio:
+    url: http://localhost:9000
+    access-key : admin
+    secret-key : admin1234
+    create-bucket: true
+    bucket: "file-storage"
+
+
 logging:
 #  level:
 #    org.springframework.data.*.* : trace
@@ -48,9 +58,11 @@ logging:
     console: "%d{HH:mm:ss} [%-5level] %C{1.} - %msg%n"
 
 
-
 management:
-  endpoints.web.exposure.include: 'prometheus, health'
+  endpoints.web.exposure.include: '*'
+  endpoint:
+    health:
+      show-details: always
   metrics:
     export:
       prometheus:
@@ -62,7 +74,7 @@ management:
 application:
   meet-status-job : true
   meet-job-limit : 100
-  meet-creation :
+  meet-validation :
     use-rule : true
     validate-cross-time : true
     required-rank : 2.0

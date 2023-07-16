@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 import ru.bogatov.quickmeet.model.auth.CustomUserDetails;
@@ -19,6 +20,7 @@ import ru.bogatov.quickmeet.model.request.UserUpdateBody;
 import ru.bogatov.quickmeet.repository.userdata.UserRepository;
 import ru.bogatov.quickmeet.model.request.RegistrationBody;
 import ru.bogatov.quickmeet.service.auth.VerificationService;
+import ru.bogatov.quickmeet.service.file.FileService;
 import ru.bogatov.quickmeet.service.util.CityService;
 
 import java.util.*;
@@ -34,13 +36,15 @@ public class UserService {
     private final CityService cityService;
     private final VerificationService verificationService;
     private final CacheManager cacheManager;
+    private final FileService fileService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CityService cityService, VerificationService verificationService, CacheManager cacheManager) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CityService cityService, VerificationService verificationService, CacheManager cacheManager, FileService fileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.cityService = cityService;
         this.verificationService = verificationService;
         this.cacheManager = cacheManager;
+        this.fileService = fileService;
     }
     // no need after caches
     public UserForAuth findUserForAuthById(UUID id) {
@@ -108,7 +112,6 @@ public class UserService {
         return result;
     }
     public User updateUser(User user) {
-        //todo why @CachePut not working??
         User updatedUser = userRepository.save(user);
         cacheManager.getCache(USERS_CACHE).put(updatedUser.getId(), updatedUser);
         return updatedUser;
@@ -164,6 +167,26 @@ public class UserService {
         if (user.isRemoved()) {
             throw ErrorUtils.buildException(ApplicationError.USER_IS_BLOCKED, "User removed");
         }
+    }
+    public User updateUserAvatar(UUID userId, MultipartFile file) {
+        User user = findUserByID(userId);
+        checkUserStatus(user);
+        if (user.getAvatar() != null) {
+            fileService.deleteFile(user.getAvatar().getFileName());
+            user.setAvatar(fileService.updateFile(user.getAvatar().getId(), file));
+        } else {
+            user.setAvatar(fileService.saveFile(file));
+        }
+        return updateUser(user);
+    }
+
+    public User deleteUserAvatar(UUID userId) {
+        User user = findUserByID(userId);
+        checkUserStatus(user);
+        if (user.getAvatar() != null) {
+            user.setAvatar(fileService.deleteFile(user.getAvatar().getId()));
+        }
+        return updateUser(user);
     }
 
     public Set<UUID> findAllowedChatIds(UUID userID) {

@@ -7,7 +7,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.bogatov.quickmeet.config.application.MeetCreationRuleProperties;
+import org.springframework.web.multipart.MultipartFile;
+import ru.bogatov.quickmeet.config.application.MeetValidationRuleProperties;
 import ru.bogatov.quickmeet.config.security.JwtProvider;
 import ru.bogatov.quickmeet.entity.Guest;
 import ru.bogatov.quickmeet.entity.Meet;
@@ -18,6 +19,7 @@ import ru.bogatov.quickmeet.model.enums.MeetStatus;
 import ru.bogatov.quickmeet.model.request.*;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
 import ru.bogatov.quickmeet.repository.meet.MeetRepository;
+import ru.bogatov.quickmeet.service.file.FileService;
 import ru.bogatov.quickmeet.service.user.GuestService;
 import ru.bogatov.quickmeet.service.user.UserService;
 import ru.bogatov.quickmeet.service.util.CityService;
@@ -40,9 +42,11 @@ public class MeetService {
     private final JwtProvider jwtProvider;
     private final MeetCategoryService meetCategoryService;
     private final CacheManager cacheManager;
-    private final MeetCreationRuleProperties meetCreationRuleProperties;
+    private final MeetValidationRuleProperties meetValidationRuleProperties;
 
-    public MeetService(MeetRepository meetRepository, UserService userService, CityService cityService, GuestService guestService, JwtProvider jwtProvider, MeetCategoryService meetCategoryService, CacheManager cacheManager, MeetCreationRuleProperties meetCreationRuleProperties) {
+    private final FileService fileService;
+
+    public MeetService(MeetRepository meetRepository, UserService userService, CityService cityService, GuestService guestService, JwtProvider jwtProvider, MeetCategoryService meetCategoryService, CacheManager cacheManager, MeetValidationRuleProperties meetValidationRuleProperties, FileService fileService) {
         this.meetRepository = meetRepository;
         this.userService = userService;
         this.cityService = cityService;
@@ -50,16 +54,17 @@ public class MeetService {
         this.jwtProvider = jwtProvider;
         this.meetCategoryService = meetCategoryService;
         this.cacheManager = cacheManager;
-        this.meetCreationRuleProperties = meetCreationRuleProperties;
+        this.meetValidationRuleProperties = meetValidationRuleProperties;
+        this.fileService = fileService;
     }
 
     @Transactional
     public MeetModificationResponse createNewMeet(MeetCreationBody body) {
         MeetUtils.validateMeetCreation(body);
         User owner = userService.findUserByID(body.getOwnerId());
-        Set<Meet> existingMeets = findMeetListWhereUserOwner(owner.getId());
-        if (meetCreationRuleProperties.useRule) {
-            MeetUtils.validateOwnerClassAndMeetPeriod(body, owner, existingMeets, meetCreationRuleProperties);
+        if (meetValidationRuleProperties.useRule) {
+            Set<Meet> existingMeets = findMeetListWhereUserOwner(owner.getId());
+            MeetUtils.validateOwnerClassAndMeetPeriodForCreation(body, owner, existingMeets, meetValidationRuleProperties);
         }
         Meet meet = new Meet();
         setCity(body, owner, meet);
@@ -96,6 +101,27 @@ public class MeetService {
                 .meet(updateInCacheAndReturn(meet))
                 .token(jwtProvider.generateTokenForUser(userId))
                 .build();
+    }
+
+    public Meet updateMeetAvatar(UUID meetId, MultipartFile file) {
+        Meet meet = findById(meetId);
+        MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
+        if (meet.getAvatar() != null) {
+            fileService.deleteFile(meet.getAvatar().getFileName());
+            meet.setAvatar(fileService.updateFile(meet.getAvatar().getId(), file));
+        } else {
+            meet.setAvatar(fileService.saveFile(file));
+        }
+        return updateInCacheAndReturn(meet);
+    }
+
+    public Meet deleteMeetAvatar(UUID meetId) {
+        Meet meet = findById(meetId);
+        MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
+        if (meet.getAvatar() != null) {
+            meet.setAvatar(fileService.deleteFile(meet.getAvatar().getId()));
+        }
+        return updateInCacheAndReturn(meet);
     }
 
     @Transactional
@@ -269,6 +295,10 @@ public class MeetService {
         Meet meet = this.findById(id);
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
         setCommonData(meet, body);
+        if (meetValidationRuleProperties.useRule) {
+            Set<Meet> existingMeets = findMeetListWhereUserOwner(meet.getOwner().getId());
+            MeetUtils.validateMeetPeriodForUpdate(body, meet, existingMeets, this.meetValidationRuleProperties);
+        }
         meet.setExpectedDuration(body.getExpectedDuration());
         if (body.getCategoryId() != null) {
             setCategory(meet, body.getCategoryId());

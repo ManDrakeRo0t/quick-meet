@@ -1,7 +1,6 @@
 package ru.bogatov.quickmeet.model.request;
 
 
-import com.sun.istack.NotNull;
 import lombok.Data;
 
 

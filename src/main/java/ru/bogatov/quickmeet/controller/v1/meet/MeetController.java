@@ -1,9 +1,11 @@
 package ru.bogatov.quickmeet.controller.v1.meet;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.bogatov.quickmeet.constant.RouteConstants;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.model.request.MeetCreationBody;
@@ -43,8 +45,21 @@ public class MeetController {
     }
 
     @PostMapping("")
+    @PreAuthorize("@customSecurityRules.isUserRequest(#body.ownerId) || hasAnyAuthority('ADMIN')")
     public ResponseEntity<MeetModificationResponse> createMeet(@RequestBody MeetCreationBody body) {
         return ResponseEntity.status(HttpStatus.CREATED).body(meetService.createNewMeet(body));
+    }
+
+    @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @PostMapping(path = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Meet> updateMeetAvatar(@PathVariable UUID id, @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(meetService.updateMeetAvatar(id, file));
+    }
+
+    @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @DeleteMapping(path = "/{id}/avatar")
+    public ResponseEntity<Meet> deleteMeetAvatar(@PathVariable UUID id) {
+        return ResponseEntity.ok(meetService.deleteMeetAvatar(id));
     }
 
     @PostMapping("/search")

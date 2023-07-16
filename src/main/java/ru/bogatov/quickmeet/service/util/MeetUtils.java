@@ -1,7 +1,7 @@
 package ru.bogatov.quickmeet.service.util;
 
 import org.springframework.data.util.Pair;
-import ru.bogatov.quickmeet.config.application.MeetCreationRuleProperties;
+import ru.bogatov.quickmeet.config.application.MeetValidationRuleProperties;
 import ru.bogatov.quickmeet.entity.Guest;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
@@ -72,7 +72,7 @@ public class MeetUtils {
         }
     }
 
-    public static void validateOwnerClassAndMeetPeriod(MeetCreationBody body, User owner, Set<Meet> existingMeets, MeetCreationRuleProperties properties) {
+    public static void validateOwnerClassAndMeetPeriodForCreation(MeetCreationBody body, User owner, Set<Meet> existingMeets, MeetValidationRuleProperties properties) {
         if (owner.getAccountRank() < properties.getRequiredRankForMeetCreation()) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Owner rank less required %f", properties.getRequiredRankForMeetCreation()));
         }
@@ -83,26 +83,46 @@ public class MeetUtils {
         LocalDateTime dayToCreate = body.getTime();
         Set<Meet> todayMeets = existingMeets.stream().filter(meet -> isSameDay(dayToCreate, meet.getDateTime())).filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED).collect(Collectors.toSet());
         int meetLimit = owner.getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.goldLimit;
-        if (todayMeets.size() + 1 > meetLimit) {
-            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
-                    String.format("You can create only %d meets, you already created : %s", meetLimit,
-                            todayMeets.stream().map(Meet::getName).collect(Collectors.toSet())));
-        }
+        validateDayMeetCount(meetLimit, todayMeets);
         if (properties.validateCrossTime) {
             todayMeets = todayMeets.stream().filter(meet -> meet.getMeetStatus() != MeetStatus.FINISHED).collect(Collectors.toSet());
             LocalDateTime endTime = dayToCreate.plusHours(body.getExpectedDuration());
-            todayMeets.forEach(existingMeet -> {
-                LocalDateTime existingMeetEnd = existingMeet.getDateTime().plusHours(existingMeet.getExpectedDuration());
-                if (existingMeet.getDateTime().isBefore(endTime)) {
-                    throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
-                            String.format("Meet end time crosses with start time for another meet : %s", existingMeet.getName()));
-                }
-                if (existingMeetEnd.isAfter(dayToCreate)) {
-                    throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
-                            String.format("Meet start time crosses with ent time for another meet : %s", existingMeet.getName()));
-                }
-            });
+            validateCrossTime(dayToCreate, endTime, todayMeets);
         }
+    }
+
+    public static void validateMeetPeriodForUpdate(MeetUpdateBody body, Meet origin, Set<Meet> existingMeets, MeetValidationRuleProperties properties) {
+        LocalDateTime dayToCreate = body.getTime();
+        Set<Meet> todayMeets = existingMeets.stream().filter(meet -> isSameDay(dayToCreate, meet.getDateTime())).filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED).collect(Collectors.toSet());
+        int limit = origin.getOwner().getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.goldLimit;
+        validateDayMeetCount(limit, todayMeets);
+        if (properties.validateCrossTime) {
+            todayMeets = todayMeets.stream().filter(meet -> meet.getMeetStatus() != MeetStatus.FINISHED && meet.getId() != origin.getId() ).collect(Collectors.toSet());
+            LocalDateTime endTime = dayToCreate.plusHours(body.getExpectedDuration());
+            validateCrossTime(dayToCreate, endTime, todayMeets);
+        }
+    }
+
+    public static void validateDayMeetCount(int limit, Set<Meet> todayMeets) {
+        if (todayMeets.size() + 1 > limit) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
+                    String.format("You can create only %d meets, you already created : %s", limit,
+                            todayMeets.stream().map(Meet::getName).collect(Collectors.toSet())));
+        }
+    }
+
+    public static void validateCrossTime(LocalDateTime startTime, LocalDateTime endTime, Set<Meet> todayMeets) {
+        todayMeets.forEach(existingMeet -> {
+            LocalDateTime existingMeetEnd = existingMeet.getDateTime().plusHours(existingMeet.getExpectedDuration());
+            if (existingMeet.getDateTime().isBefore(endTime)) {
+                throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
+                        String.format("Meet end time crosses with start time for another meet : %s", existingMeet.getName()));
+            }
+            if (existingMeetEnd.isAfter(startTime)) {
+                throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
+                        String.format("Meet start time crosses with ent time for another meet : %s", existingMeet.getName()));
+            }
+        });
     }
 
     public static boolean isSameDay(LocalDateTime today, LocalDateTime date) {

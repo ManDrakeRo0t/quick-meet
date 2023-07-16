@@ -1,8 +1,10 @@
 package ru.bogatov.quickmeet.controller.v1.user;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.bogatov.quickmeet.constant.RouteConstants;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
@@ -34,6 +36,18 @@ public class UserController {
     @PatchMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable UUID id, @RequestBody UserUpdateBody body) {
         return ResponseEntity.ok(userService.updateUser(id, body));
+    }
+
+    @PreAuthorize("@customSecurityRules.isUserRequest(#id) || hasAnyAuthority('ADMIN')")
+    @PostMapping(path = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<User> updateUserAvatar(@PathVariable UUID id, @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(userService.updateUserAvatar(id, file));
+    }
+
+    @PreAuthorize("@customSecurityRules.isUserRequest(#id) || hasAnyAuthority('ADMIN')")
+    @DeleteMapping(path = "/{id}/avatar")
+    public ResponseEntity<User> deleteUserAvatar(@PathVariable UUID id) {
+        return ResponseEntity.ok(userService.deleteUserAvatar(id));
     }
 
     @PostMapping("/list")

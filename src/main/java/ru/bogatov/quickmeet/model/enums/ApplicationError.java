@@ -15,6 +15,7 @@ public enum ApplicationError {
     USER_IS_BLOCKED("User is blocked", "QM-0102", HttpStatus.BAD_REQUEST),
     COMMON_MEET_ERROR("Something went wrong during meet organization", "QM-0200", HttpStatus.BAD_REQUEST),
     MEET_VALIDATION_ERROR("Something went wrong during meet validation", "QM-201", HttpStatus.BAD_REQUEST),
+    FILE_PROCESSING_ERROR("Error while file processing", "QM-0500", HttpStatus.INTERNAL_SERVER_ERROR),
     AUTHENTICATION_ERROR("Error during authentication", "QM-0400", HttpStatus.UNAUTHORIZED);
 
 
