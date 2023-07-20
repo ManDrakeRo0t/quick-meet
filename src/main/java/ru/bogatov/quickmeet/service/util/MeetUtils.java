@@ -112,7 +112,7 @@ public class MeetUtils {
     }
 
     public static void validateCrossTime(LocalDateTime startTime, LocalDateTime endTime, Set<Meet> todayMeets) {
-        todayMeets.forEach(existingMeet -> {
+        todayMeets.forEach(existingMeet -> { // todo check and debug
             LocalDateTime existingMeetEnd = existingMeet.getDateTime().plusHours(existingMeet.getExpectedDuration());
             if (existingMeet.getDateTime().isBefore(endTime)) {
                 throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,

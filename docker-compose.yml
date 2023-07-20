@@ -32,6 +32,20 @@ services:
       - "9001:9001"
     command: server /data --console-address :9001
 
+  messenger-app:
+    build: ./messenger-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quick-meet
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
 
   core-app:
     build: .
