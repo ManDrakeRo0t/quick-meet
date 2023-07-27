@@ -1,6 +1,7 @@
 package ru.bogatov.quickmeet.service.meet;
 
 import io.netty.util.internal.StringUtil;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
@@ -43,10 +44,20 @@ public class MeetService {
     private final MeetCategoryService meetCategoryService;
     private final CacheManager cacheManager;
     private final MeetValidationRuleProperties meetValidationRuleProperties;
-
     private final FileService fileService;
 
-    public MeetService(MeetRepository meetRepository, UserService userService, CityService cityService, GuestService guestService, JwtProvider jwtProvider, MeetCategoryService meetCategoryService, CacheManager cacheManager, MeetValidationRuleProperties meetValidationRuleProperties, FileService fileService) {
+    private final MeetEventSenderService senderService;
+
+    public MeetService(MeetRepository meetRepository,
+                       UserService userService,
+                       CityService cityService,
+                       GuestService guestService,
+                       JwtProvider jwtProvider,
+                       MeetCategoryService meetCategoryService,
+                       CacheManager cacheManager,
+                       MeetValidationRuleProperties meetValidationRuleProperties,
+                       FileService fileService,
+                       MeetEventSenderService senderService) {
         this.meetRepository = meetRepository;
         this.userService = userService;
         this.cityService = cityService;
@@ -56,6 +67,7 @@ public class MeetService {
         this.cacheManager = cacheManager;
         this.meetValidationRuleProperties = meetValidationRuleProperties;
         this.fileService = fileService;
+        this.senderService = senderService;
     }
 
     @Transactional
@@ -82,8 +94,10 @@ public class MeetService {
         meet.setOwner(owner);
         meet.setCurrentPeople(1);
         evictOwnerListCache(body.getOwnerId());
+        Meet created = updateInCacheAndReturn(meet);
+        senderService.sendMeetCreatedEvent(created.getId());
         return MeetModificationResponse.builder()
-                .meet(updateInCacheAndReturn(meet))
+                .meet(created)
                 .token(jwtProvider.generateTokenForUser(owner))
                 .build();
     }
@@ -97,8 +111,10 @@ public class MeetService {
         Guest guest = guestService.createGuest(meet, userId);
         MeetUtils.addGuest(meet, guest);
         evictGuestListCache(userId);
+        Meet updated = updateInCacheAndReturn(meet);
+        senderService.sendUsedJoinedEvent(updated.getId(), userId);
         return MeetModificationResponse.builder()
-                .meet(updateInCacheAndReturn(meet))
+                .meet(updated)
                 .token(jwtProvider.generateTokenForUser(userId))
                 .build();
     }
@@ -112,6 +128,7 @@ public class MeetService {
         } else {
             meet.setAvatar(fileService.saveFile(file));
         }
+        senderService.sendMeetAvatarUpdatedEvent(meetId);
         return updateInCacheAndReturn(meet);
     }
 
@@ -121,6 +138,7 @@ public class MeetService {
         if (meet.getAvatar() != null) {
             meet.setAvatar(fileService.deleteFile(meet.getAvatar().getId()));
         }
+        senderService.sendMeetAvatarUpdatedEvent(meetId);
         return updateInCacheAndReturn(meet);
     }
 
@@ -131,8 +149,10 @@ public class MeetService {
         guestService.deleteGuest(MeetUtils.removeGuest(meet, userId));
         meet = meetRepository.save(meet);
         evictGuestListCache(userId);
+        Meet updated = updateInCacheAndReturn(meet);
+        senderService.sendUsedLeftEvent(meetId, userId);
         return MeetModificationResponse.builder()
-                .meet(updateInCacheAndReturn(meet))
+                .meet(updated)
                 .token(jwtProvider.generateTokenForUser(userId))
                 .build();
     }
@@ -152,8 +172,10 @@ public class MeetService {
         MeetUtils.addUserToBlackList(meet, userId);
         meet = meetRepository.save(meet);
         evictGuestListCache(userId);
+        Meet updated = updateInCacheAndReturn(meet);
+        senderService.sendUsedRemovedEvent(meetId, userId);
         return MeetModificationResponse.builder()
-                .meet(updateInCacheAndReturn(meet))
+                .meet(updated)
                 .build();
     }
 
@@ -221,8 +243,9 @@ public class MeetService {
     }
 
     @Transactional
-    public Meet updateMeetStatus(UUID id, MeetUpdateStatusBody body) {
+    public Meet updateMeetStatus(UUID id, MeetUpdateStatusBody body, boolean isSystemUpdate) {
         Meet meet = this.findById(id);
+        MeetStatus oldStatus = meet.getMeetStatus();
         if (body.getTargetState() != null) {
             MeetUtils.updateState(meet, body.getTargetState());
         }
@@ -230,6 +253,7 @@ public class MeetService {
             processRatingUpdate(meet);
             meet.setRatingProcessed(true);
         }
+        senderService.sendMeetUpdatedStateEvent(body.getTargetState(), id, isSystemUpdate);
         return updateInCacheAndReturn(meet);
     }
 
@@ -299,16 +323,22 @@ public class MeetService {
             Set<Meet> existingMeets = findMeetListWhereUserOwner(meet.getOwner().getId());
             MeetUtils.validateMeetPeriodForUpdate(body, meet, existingMeets, this.meetValidationRuleProperties);
         }
+        int oldDuration = meet.getExpectedDuration();
         meet.setExpectedDuration(body.getExpectedDuration());
         if (body.getCategoryId() != null) {
             setCategory(meet, body.getCategoryId());
         }
+        senderService.sendMeetUpdatedEvent(id, body, meet.getCategory().getName(), oldDuration);
         return updateInCacheAndReturn(meet);
     }
     @Transactional
     public void changeStatusPlannedToActive() {
-        meetRepository.updateStatusPlannedToActive(LocalDateTime.now());
-        cacheManager.getCache(MEET_CACHE).clear();
+        Set<UUID> meetIdsToStart = meetRepository.getStatusPlannedToActive(LocalDateTime.now());
+        meetIdsToStart.parallelStream().forEach(id -> {
+            meetRepository.setStatusActive(id);
+            senderService.sendMeetUpdatedStateEvent(MeetStatus.ACTIVE, id, true);
+            cacheManager.getCache(MEET_CACHE).evict(id);
+        });
     }
 
     @Transactional
@@ -316,7 +346,7 @@ public class MeetService {
         MeetUpdateStatusBody body = new MeetUpdateStatusBody();
         body.setTargetState(MeetStatus.FINISHED);
         Set<UUID> meetIds = meetRepository.findMeedIdsShouldBeFinished(limit, LocalDateTime.now());
-        meetIds.parallelStream().forEach(id -> updateMeetStatus(id, body));
+        meetIds.parallelStream().forEach(id -> updateMeetStatus(id, body, true));
     }
 
     private void setCity(MeetCreationBody body, User owner, Meet meet) {

@@ -92,7 +92,7 @@ public class MeetUtils {
     }
 
     public static void validateMeetPeriodForUpdate(MeetUpdateBody body, Meet origin, Set<Meet> existingMeets, MeetValidationRuleProperties properties) {
-        LocalDateTime dayToCreate = body.getTime();
+        LocalDateTime dayToCreate = body.getTime(); //todo null
         Set<Meet> todayMeets = existingMeets.stream().filter(meet -> isSameDay(dayToCreate, meet.getDateTime())).filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED).collect(Collectors.toSet());
         int limit = origin.getOwner().getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.goldLimit;
         validateDayMeetCount(limit, todayMeets);
