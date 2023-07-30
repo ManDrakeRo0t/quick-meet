@@ -41,7 +41,7 @@ public class MeetController {
     @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<Meet> updateMeetStatusById(@PathVariable UUID id, @RequestBody MeetUpdateStatusBody body) {
-        return ResponseEntity.ok(meetService.updateMeetStatus(id, body));
+        return ResponseEntity.ok(meetService.updateMeetStatus(id, body, false));
     }
 
     @PostMapping("")

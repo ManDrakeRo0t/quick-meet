@@ -1,0 +1,165 @@
+<html>
+<head>
+    <title>Chat WebSocket</title>
+
+<!--    <script src="https://raw.githubusercontent.com/stomp-js/stomp-websocket/master/lib/stomp.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+
+    <!-- Include from CDN for better performance, alternatively you can locally copy as well -->
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0-beta2/bundles/stomp.umd.min.js"></script>
+    <script type="text/javascript">
+        var stompClient = null;
+        let sentPath = null;
+
+
+        function setConnected(connected) {
+            document.getElementById('connect').disabled = connected;
+            document.getElementById('disconnect').disabled = !connected;
+            document.getElementById('read').disabled = !connected;
+            document.getElementById('conversationDiv').style.visibility
+                = connected ? 'visible' : 'hidden';
+            document.getElementById('response').innerHTML = '';
+        }
+
+        function connect() {
+            let sendTopic = "/topic/chats.X.message.send"
+            let destTopic = "/topic/chats.X.messages"
+            let chatId = document.getElementById('chat').value;
+            let destPath = destTopic.replace("X", chatId)
+            sentPath = sendTopic.replace("X", chatId)
+            let token = document.getElementById('token').value;
+            const stompConfig = {
+
+                connectHeaders: {
+                    Authorization: "Bearer " + token,
+                },
+
+                brokerURL: "ws://localhost:8081/ws",
+                // debug: function (str) {
+                //     console.log('STOMP: ' + str);
+                // },
+                reconnectDelay: 200,
+
+                // Subscriptions should be done inside onConnect as those need to reinstated when the broker reconnects
+                onConnect: function (frame) {
+                    // The return object has a method called `unsubscribe`
+                    const subscription = stompClient.subscribe( destPath , function (message) {
+                        const payload = JSON.parse(message.body);
+                        console.log(payload)
+                        displayIncomingMessage(payload);
+                    }, {Authorization : "Bearer " + token});
+                }
+            };
+            stompClient = new StompJs.Client(stompConfig);
+            stompClient.activate();
+            setConnected(true);
+        }
+
+        function disconnect() {
+            if(stompClient != null) {
+                stompClient.deactivate();
+            }
+            setConnected(false);
+            console.log("Disconnected");
+        }
+
+        function sendMessage() {
+            var from = document.getElementById('from').value;
+            var text = document.getElementById('text').value;
+            let  token = document.getElementById('token').value;
+            stompClient.publish({
+                destination: sentPath,
+                body: JSON.stringify({'senderId':from, 'content':text}),
+                headers: { Authorization: 'Bearer ' + token },
+            });
+
+        }
+
+        function displayIncomingMessage(m) {
+            var response = document.getElementById('response');
+            var p = document.createElement('p');
+            p.style.wordWrap = 'break-word';
+            p.appendChild(document.createTextNode(m.type + " [ "
+                + m?.message?.senderId  + " : "  + m?.message?.content + " ] "
+                + JSON.stringify(m.event)
+            ));
+            response.appendChild(p);
+        }
+
+        function readChat() {
+            let  token = document.getElementById('token').value;
+            var from = document.getElementById('from').value;
+            stompClient.publish({
+                destination: sentPath,
+                body: JSON.stringify({'senderId':from, 'chatViewed' : true}),
+                headers: { Authorization: 'Bearer ' + token },
+            });
+        }
+
+        function getChat() {
+            let  token = document.getElementById('token').value;
+            var from = document.getElementById('from').value;
+            let chatId = document.getElementById('chat').value;
+            fetch('http://localhost:8081/api/v1/chat-management/chat/notifications' , {
+                method : 'POST',
+                body : JSON.stringify({
+                    chatIds : [chatId],
+                    senderId : from
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization' : 'Bearer ' + token,
+                    'Access-Control-Allow-Origin' : "*"
+                }
+            }).then(res => {
+                var history = document.getElementById('history');
+                history.innerText = JSON.stringify(res.json())
+            })
+        }
+    </script>
+</head>
+<body onload="disconnect()">
+<div>
+    <div>
+        <input style="width: 300px" type="text" id="from" placeholder="user id"/>
+    </div>
+    <div>
+        <input style="width: 300px" type="text" id="chat" placeholder="chat id"/>
+    </div>
+    <div>
+        <input style="width: 300px" type="text" id="token" placeholder="token"/>
+    </div>
+    <br />
+    <div>
+        <button id="connect" onclick="connect();">Connect</button>
+        <button id="disconnect" disabled="disabled" onclick="disconnect();">
+            Disconnect
+        </button>
+        <button id="read" disabled="disabled" onclick="readChat();">
+            Read chat
+        </button>
+        <button id="getchat"  onclick="getChat();">
+            Get chat
+        </button>
+        <button id="getnotif"  onclick="getNotif();">
+            Get notifications
+        </button>
+    </div>
+    <br />
+    <div id="conversationDiv">
+        <input type="text" id="text" placeholder="Write a message..."/>
+        <button id="sendMessage" onclick="sendMessage();">Send</button>
+        <p id="history"></p>
+        <p id="response"></p>
+    </div>
+</div>
+
+</body>
+</html>
+
+<!--//import { Client } from '@stomp/stompjs';-->
+<!--// ws://localhost:8081/ws-->
+<!--// subscribe /topic/chats.84a33ad4-5b21-406e-b467-8223a95970c6.messages-->
+<!--// send /topic/chats.84a33ad4-5b21-406e-b467-8223a95970c6.message.send-->
+<!--// content {     "content" : "hi",     "senderId" : "84a33ad4-5b21-406e-b467-8223a95970c6" }-->
+<!--// tool http://jxy.me/websocket-debug-tool/-->

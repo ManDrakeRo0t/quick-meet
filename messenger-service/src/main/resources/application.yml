@@ -1,0 +1,38 @@
+server:
+  port: 8081
+
+spring:
+  main:
+    allow-circular-references: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  #    properties:
+  #      hibernate:
+  #        generate_statistics: true # only for development
+  application:
+    name : "quick-meet-messenger"
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  rabbitmq:
+    host: localhost
+    username: admin
+    password: admin
+
+  datasource:
+    url: "jdbc:postgresql://localhost:5432/quick-meet-messenger"
+    username: "postgres"
+    password: "1234"
+
+  cache:
+    type: redis
+    cache-names: chat-viewed
+
+  redis:
+    host: localhost
+    port: 6379
+
+jwt:
+  secret: test-secret

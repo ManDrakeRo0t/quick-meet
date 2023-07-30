@@ -22,7 +22,7 @@ public class MeetStatusJob {
     public MeetStatusJob(MeetService meetService) {
         this.meetService = meetService;
     }
-    @Scheduled(fixedRate = 5, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedRate = 15, timeUnit = TimeUnit.MINUTES)
     public void updateMeetStatusPlannedToActive() {
         if (isJobEnabled) {
             log.info("Update Meet Status job [PLANNED -> ACTIVE] - started");

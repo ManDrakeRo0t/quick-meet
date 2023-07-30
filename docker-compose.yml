@@ -32,6 +32,35 @@ services:
       - "9001:9001"
     command: server /data --console-address :9001
 
+  rabbitmq:
+    image: pcloud/rabbitmq-stomp
+    environment:
+      RABBITMQ_DEFAULT_USER : admin
+      RABBITMQ_DEFAULT_PASS : admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "61613:61613"
+    volumes:
+      - '~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/mnesia/'
+    networks:
+      - quick-meet-network
+
+  messenger-app:
+    build: ./messenger-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - core-app
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quick-meet
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
 
   core-app:
     build: .
@@ -68,3 +97,8 @@ services:
 volumes:
   postgres-data:
   minio:
+  rabbitmq:
+
+networks:
+  quick-meet-network:
+    driver: bridge

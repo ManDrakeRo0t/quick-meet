@@ -34,8 +34,6 @@ spring:
 
   cache:
     type: redis
-    redis:
-      time-to-live: 15m
 
   redis:
     host: localhost
@@ -47,6 +45,11 @@ spring:
     secret-key : admin1234
     create-bucket: true
     bucket: "file-storage"
+
+  rabbitmq:
+    host: localhost
+    username: admin
+    password: admin
 
 
 logging:
