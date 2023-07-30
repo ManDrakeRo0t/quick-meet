@@ -30,5 +30,5 @@ public class MeetCreationBody implements MeetCommonData{
     @NotNull
     boolean attendRequired;
     @NotNull
-    private int expectedDuration;
+    private Integer expectedDuration;
 }

@@ -13,7 +13,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     Set<Message> defaultSearch(UUID chatId, int limit, int offset);
 
     @Query(nativeQuery = true, value = "select * from(select * from message where destination_id = :chatId " +
-            "and send_time > :readTime union select * from message where destination_id = :chatId and send_time < :readTime limit :limit) as m order by send_time")
+            "and send_time > :readTime union all (select * from message where destination_id = :chatId and send_time < :readTime order by send_time desc limit :limit )) as m order by send_time desc")
     Set<Message> historySearch(UUID chatId, int limit, LocalDateTime readTime);
 
 }

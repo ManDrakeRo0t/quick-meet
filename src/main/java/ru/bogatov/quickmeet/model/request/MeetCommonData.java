@@ -6,5 +6,6 @@ public interface MeetCommonData {
     String getName();
     String getDescription();
     LocalDateTime getTime();
-    int getExpectedDuration();
+    Integer getExpectedDuration();
+
 }

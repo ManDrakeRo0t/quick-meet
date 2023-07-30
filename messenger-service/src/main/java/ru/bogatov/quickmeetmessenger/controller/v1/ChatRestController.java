@@ -8,6 +8,7 @@ import ru.bogatov.quickmeetmessenger.service.ChatService;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static ru.bogatov.quickmeetmessenger.constant.RouteConstant.*;
 
@@ -26,11 +27,11 @@ public class ChatRestController {
     }
 
     @GetMapping("{id}/messages/{senderId}")
-    public ResponseEntity<ChatMessagesResponse> getChatMessages(@PathVariable String id,
-                                                                @PathVariable String senderId,
+    public ResponseEntity<ChatMessagesResponse> getChatMessages(@PathVariable UUID id,
+                                                                @PathVariable UUID senderId,
                                                                 @RequestParam(required = false, defaultValue = "20") int limit,
                                                                 @RequestParam(required = false, defaultValue = "0") int offset) {
-        return ResponseEntity.ok().body(null);
+        return ResponseEntity.ok().body(chatService.getChatsMessages(id, senderId, limit, offset));
     }
 
 }

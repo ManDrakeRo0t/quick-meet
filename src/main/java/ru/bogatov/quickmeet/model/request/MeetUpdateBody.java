@@ -13,5 +13,5 @@ public class MeetUpdateBody implements MeetCommonData {
     private String description;
     private LocalDateTime time;
     private UUID categoryId;
-    private int expectedDuration;
+    private Integer expectedDuration;
 }

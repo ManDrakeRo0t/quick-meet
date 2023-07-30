@@ -1,7 +1,9 @@
 package ru.bogatov.quickmeetmessenger.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -22,6 +24,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Value("${spring.rabbitmq.password}")
     String password;
+
+    private final JwtProvider provider;
+
+    public WebSocketConfig(JwtProvider provider) {
+        this.provider = provider;
+    }
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint(REGISTRY)
@@ -44,5 +53,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setSystemPasscode(password);
         config.setApplicationDestinationPrefixes(TOPIC_DESTINATION_PREFIX);
         //config.setUserDestinationPrefix(TOPIC_DESTINATION_PREFIX);
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(authInterceptor());
+        WebSocketMessageBrokerConfigurer.super.configureClientInboundChannel(registration);
+    }
+
+    @Bean
+    public WebSocketAuthInterceptor authInterceptor() {
+        return new WebSocketAuthInterceptor(this.provider);
     }
 }

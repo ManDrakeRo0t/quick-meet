@@ -96,6 +96,7 @@ public class ChatService {
 
     public ChatMessagesResponse getChatsMessages(UUID chatId, UUID senderId, int limit, int offset) {
         Set<Message> messages = null;
+        LocalDateTime lastReadTime = null;
         if (offset != 0) {
             //default search
             messages = messageService.defaultSearch(chatId, limit, offset);
@@ -107,32 +108,36 @@ public class ChatService {
             if (record == null) {
                 messages = messageService.defaultSearch(chatId, limit, offset);
             } else {
+                lastReadTime = record.getReadTime();
                 messages = messageService.searchWithHistory(chatId, limit, record.getReadTime());
             }
         }
         return ChatMessagesResponse.builder()
                 .messages(messages)
                 .messageCount(messages == null ? 0 : messages.size())
+                .lastReadTime(lastReadTime)
                 .build();
     }
 
     public void handleMessageEvent(UUID chatId, MessageEvent event) {
         ChatViewedHistory chatHistory = getRecentlyViewedFromCache(chatId);
         LocalDateTime lastSendTime = null;
+        LocalDateTime lastReadTime = null;
         Set<ChatViewedRecord> recentlyViewed = new HashSet<>();
         if (chatHistory != null) {
             lastSendTime = chatHistory.getLastMessageSendTime() == null ? null : chatHistory.getLastMessageSendTime();
             recentlyViewed = chatHistory.getRecords() == null ? new HashSet<>() : chatHistory.getRecords();
         }
         if (event.getContent() != null && !event.getContent().isEmpty()) {
-            lastSendTime = LocalDateTime.now();
+            lastSendTime = lastReadTime = LocalDateTime.now();
             sendMessage(chatId, event.getSenderId(), event.getContent());
         } else if (event.isChatViewed()) {
+            lastReadTime = LocalDateTime.now();
             sendChatReadEvent(chatId, event.getSenderId());
         }
         replaceOrAdd(recentlyViewed, ChatViewedRecord.builder()
                 .userId(event.getSenderId())
-                .readTime(lastSendTime)
+                .readTime(lastReadTime)
                 .build());
         saveRecentlyViewedInCache(chatId, recentlyViewed, lastSendTime);
     }
@@ -173,7 +178,7 @@ public class ChatService {
     }
 
     public static void replaceOrAdd(Set<ChatViewedRecord> recentlyViewed, ChatViewedRecord record) {
-        recentlyViewed.removeIf(existing -> existing.getUserId().equals(record.getUserId()));
+        recentlyViewed.removeIf(existing -> existing.getUserId() != null && existing.getUserId().equals(record.getUserId()));
         recentlyViewed.add(record);
     }
 }

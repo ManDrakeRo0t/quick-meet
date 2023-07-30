@@ -33,3 +33,6 @@ spring:
   redis:
     host: localhost
     port: 6379
+
+jwt:
+  secret: test-secret
