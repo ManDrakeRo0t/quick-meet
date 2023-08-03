@@ -92,7 +92,7 @@ public class MeetEventSenderService {
                     .newValue(meet.getTime().toString()).build();
             sendEvent(event);
         }
-        if (meet.getExpectedDuration() != oldDuration) {
+        if (meet.getExpectedDuration() != null && meet.getExpectedDuration() != oldDuration) {
             MeetUpdateEvent event = builder
                     .field("expectedDuration")
                     .newValue(String.valueOf(meet.getExpectedDuration())).build();

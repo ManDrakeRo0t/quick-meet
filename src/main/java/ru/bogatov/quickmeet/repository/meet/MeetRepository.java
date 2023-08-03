@@ -4,6 +4,7 @@ import io.micrometer.core.annotation.Timed;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.entity.Meet;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ public interface MeetRepository extends JpaRepository<Meet, UUID> {
     @Query(nativeQuery = true, value = "select cast(id as varchar) from meet where meet_status = 'ACTIVE' and date_time + interval '1 hour' * expected_duration < :now limit :limit")
     Set<UUID> findMeedIdsShouldBeFinished(int limit ,LocalDateTime now);
     @Modifying
+    @Transactional
     @Query(nativeQuery = true, value = "update meet set meet_status = 'ACTIVE' where id = ?1")
     void setStatusActive(UUID meetId);
 

@@ -40,15 +40,16 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             if (requestTokenHeader != null && requestTokenHeader.startsWith(BEARER)) {
                 token = requestTokenHeader.substring(7);
             }
-            if (token == null || !jwtProvider.validateToken(token) || !isAllowedByChatId(token, destination)) {
+            if (token == null || !jwtProvider.validateToken(token) || !isAllowedByTopicId(token, destination)) {
                 return null;
             }
         }
         return message;
     }
 
-    public boolean isAllowedByChatId(String token, String destinationTopic) {
+    public boolean isAllowedByTopicId(String token, String destinationTopic) {
         String chatId = destinationTopic.substring(13, 49);
         return jwtProvider.getAllowedChatsIds(token).contains(chatId);
     }
+
 }

@@ -324,7 +324,9 @@ public class MeetService {
             MeetUtils.validateMeetPeriodForUpdate(body, meet, existingMeets, this.meetValidationRuleProperties);
         }
         int oldDuration = meet.getExpectedDuration();
-        meet.setExpectedDuration(body.getExpectedDuration());
+        if (body.getExpectedDuration() != null) {
+            meet.setExpectedDuration(body.getExpectedDuration());
+        }
         if (body.getCategoryId() != null) {
             setCategory(meet, body.getCategoryId());
         }

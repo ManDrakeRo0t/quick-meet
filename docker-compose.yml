@@ -34,6 +34,7 @@ services:
 
   rabbitmq:
     image: pcloud/rabbitmq-stomp
+    hostname: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER : admin
       RABBITMQ_DEFAULT_PASS : admin
@@ -43,8 +44,6 @@ services:
       - "61613:61613"
     volumes:
       - '~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/mnesia/'
-    networks:
-      - quick-meet-network
 
   messenger-app:
     build: ./messenger-service
@@ -56,11 +55,12 @@ services:
       - minio
       - core-app
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quick-meet
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/quick-meet-messenger
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 1234
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+      SPRING_RABBITMQ_HOST : rabbitmq
 
   core-app:
     build: .
@@ -77,6 +77,7 @@ services:
       SPRING_REDIS_HOST : redis
       SPRING_REDIS_PORT : 6379
       SPRING_MINIO_URL : http://minio:9000
+      SPRING_RABBITMQ_HOST : rabbitmq
 
 
 #  prometheus:
@@ -98,7 +99,3 @@ volumes:
   postgres-data:
   minio:
   rabbitmq:
-
-networks:
-  quick-meet-network:
-    driver: bridge

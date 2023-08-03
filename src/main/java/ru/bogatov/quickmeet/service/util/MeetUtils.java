@@ -93,6 +93,7 @@ public class MeetUtils {
 
     public static void validateMeetPeriodForUpdate(MeetUpdateBody body, Meet origin, Set<Meet> existingMeets, MeetValidationRuleProperties properties) {
         LocalDateTime dayToCreate = body.getTime() == null ? origin.getDateTime() : body.getTime();
+        int expectedDuration = body.getExpectedDuration() == null ? origin.getExpectedDuration() : body.getExpectedDuration();
         Set<Meet> todayMeets = existingMeets.stream()
                 .filter(meet -> isSameDay(dayToCreate, meet.getDateTime()))
                 .filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED && !meet.getId().equals(origin.getId()))
@@ -101,7 +102,7 @@ public class MeetUtils {
         validateDayMeetCount(limit, todayMeets);
         if (properties.validateCrossTime) {
             todayMeets = todayMeets.stream().filter(meet -> meet.getMeetStatus() != MeetStatus.FINISHED && meet.getId() != origin.getId() ).collect(Collectors.toSet());
-            LocalDateTime endTime = dayToCreate.plusHours(body.getExpectedDuration());
+            LocalDateTime endTime = dayToCreate.plusHours(expectedDuration);
             validateCrossTime(dayToCreate, endTime, todayMeets);
         }
     }
