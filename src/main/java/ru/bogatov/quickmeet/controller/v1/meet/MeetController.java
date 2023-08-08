@@ -82,6 +82,11 @@ public class MeetController {
         return ResponseEntity.ok(meetService.updateGuest(id, guestId, isAttend));
     }
     @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @PatchMapping("/{id}/owner/status")
+    public ResponseEntity<Void> updateOwnerStatus(@PathVariable UUID id, @RequestParam("attend") boolean isAttend) {
+        return ResponseEntity.ok(meetService.updateOwner(id, isAttend));
+    }
+    @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     @PostMapping("/{id}/remove/{userId}")
     public ResponseEntity<MeetModificationResponse> removeUserFromMeet(@PathVariable UUID id, @PathVariable UUID userId) {
         return ResponseEntity.ok(meetService.removeUserFromMeet(id, userId));

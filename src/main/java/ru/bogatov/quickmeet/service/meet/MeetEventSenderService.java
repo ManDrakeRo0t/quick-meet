@@ -68,7 +68,8 @@ public class MeetEventSenderService {
         sendEvent(event);
     }
 
-    public void sendMeetUpdatedEvent(UUID meetId, MeetUpdateBody meet, String categoryName, int oldDuration) {
+    public int sendMeetUpdatedEvent(UUID meetId, MeetUpdateBody meet, String categoryName, int oldDuration) {
+        int updatedFieldsCount = 0;
         MeetUpdateEvent.MeetUpdateEventBuilder builder = MeetUpdateEvent.builder()
                 .meetId(meetId)
                 .userId(null)
@@ -78,32 +79,38 @@ public class MeetEventSenderService {
             MeetUpdateEvent event = builder
                     .field("name")
                     .newValue(meet.getName()).build();
+            updatedFieldsCount++;
             sendEvent(event);
         }
         if (!StringUtil.isNullOrEmpty(meet.getDescription())) {
             MeetUpdateEvent event = builder
                     .field("description")
                     .newValue(meet.getDescription()).build();
+            updatedFieldsCount++;
             sendEvent(event);
         }
         if (meet.getTime() != null) {
             MeetUpdateEvent event = builder
                     .field("dateTime")
                     .newValue(meet.getTime().toString()).build();
+            updatedFieldsCount++;
             sendEvent(event);
         }
         if (meet.getExpectedDuration() != null && meet.getExpectedDuration() != oldDuration) {
             MeetUpdateEvent event = builder
                     .field("expectedDuration")
                     .newValue(String.valueOf(meet.getExpectedDuration())).build();
+            updatedFieldsCount++;
             sendEvent(event);
         }
         if (meet.getCategoryId() != null) {
             MeetUpdateEvent event = builder
                     .field("category")
                     .newValue(categoryName).build();
+            updatedFieldsCount++;
             sendEvent(event);
         }
+        return updatedFieldsCount;
     }
 
     public void sendMeetUpdatedStateEvent(MeetStatus newValue, UUID meetId, boolean isSystemUpdate) {

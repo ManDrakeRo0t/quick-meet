@@ -1,7 +1,6 @@
 package ru.bogatov.quickmeet.service.meet;
 
 import io.netty.util.internal.StringUtil;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
@@ -25,13 +24,13 @@ import ru.bogatov.quickmeet.service.user.GuestService;
 import ru.bogatov.quickmeet.service.user.UserService;
 import ru.bogatov.quickmeet.service.util.CityService;
 import ru.bogatov.quickmeet.service.util.MeetUtils;
+import ru.bogatov.quickmeet.service.util.RankService;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.bogatov.quickmeet.constant.CacheConstants.*;
-import static ru.bogatov.quickmeet.constant.UserConstants.*;
 
 @Service
 public class MeetService {
@@ -45,8 +44,8 @@ public class MeetService {
     private final CacheManager cacheManager;
     private final MeetValidationRuleProperties meetValidationRuleProperties;
     private final FileService fileService;
-
     private final MeetEventSenderService senderService;
+    private final RankService rankService;
 
     public MeetService(MeetRepository meetRepository,
                        UserService userService,
@@ -57,7 +56,7 @@ public class MeetService {
                        CacheManager cacheManager,
                        MeetValidationRuleProperties meetValidationRuleProperties,
                        FileService fileService,
-                       MeetEventSenderService senderService) {
+                       MeetEventSenderService senderService, RankService rankService) {
         this.meetRepository = meetRepository;
         this.userService = userService;
         this.cityService = cityService;
@@ -68,6 +67,7 @@ public class MeetService {
         this.meetValidationRuleProperties = meetValidationRuleProperties;
         this.fileService = fileService;
         this.senderService = senderService;
+        this.rankService = rankService;
     }
 
     @Transactional
@@ -83,7 +83,9 @@ public class MeetService {
         setCommonData(meet, body);
         setCategory(meet, body.getCategoryId());
         meet.setLatitude(body.getLatitude());
+        meet.setUpdateCount(0);
         meet.setRatingProcessed(false);
+        meet.setGuestRatingProcessRequired(true);
         meet.setAddress(body.getAddress());
         meet.setLongevity(body.getLongevity());
         meet.setAttendRequired(body.isAttendRequired());
@@ -161,6 +163,13 @@ public class MeetService {
     public Void updateGuest(UUID meetId, UUID guestId, boolean isAttend) {
         cacheManager.getCache(MEET_CACHE).evict(meetId);
         guestService.updateGuest(guestId, isAttend);
+        return null;
+    }
+
+    public Void updateOwner(UUID meetId, boolean isAttend) {
+        Meet meet = findById(meetId);
+        meet.setOwnerAttend(isAttend);
+        updateInCacheAndReturn(meet);
         return null;
     }
 
@@ -258,59 +267,10 @@ public class MeetService {
     }
 
     private void processRatingUpdate(Meet meet) {
-        User owner = meet.getOwner();
-        updateOwnerRank(meet, owner);
-        meet.getGuests().forEach(guest -> updateGuestRank(meet, guest));
-    }
-
-    private void updateOwnerRank(Meet meet, User owner) {
-        float currentRank = owner.getAccountRank();
-        if (currentRank == MAX_RANK) {
-            return;
+        rankService.updateOwnerRank(meet);
+        if (meet.isGuestRatingProcessRequired()) {
+            meet.getGuests().forEach(guest -> rankService.updateGuestRank(meet, guest));
         }
-        float updatedRank = currentRank;
-        if (meet.getGuests() != null && !meet.getGuests().isEmpty()) {
-            if (meet.isAttendRequired()) {
-                long attendedGuests = meet.getGuests().stream().filter(Guest::isAttend).count();
-                updatedRank += attendedGuests * RANK_UPDATE_DELTA;
-            } else {
-                updatedRank += RANK_UPDATE_DELTA;
-            }
-        }
-        updatedRank = Math.min(updatedRank, MAX_RANK);
-        if (updatedRank != currentRank) {
-            owner.setAccountRank(updatedRank);
-            userService.updateUser(owner);
-        }
-    }
-
-    private void updateGuestRank(Meet meet, Guest guest) {
-        User user = userService.findUserByID(guest.getUserId());
-        int attendSeries = user.getAttendSeries();
-        int missSeries = user.getMissSeries();
-        float updatedRank = user.getAccountRank();
-        if (guest.isAttend()) {
-            attendSeries += 1;
-            missSeries = 0;
-        } else {
-            missSeries +=1;
-            attendSeries = 0;
-        }
-        if (meet.isAttendRequired() && !guest.isAttend()) {
-            updatedRank -= missSeries * RANK_UPDATE_DELTA;
-            if (updatedRank < MIN_RANK) {
-                updatedRank = MIN_RANK;
-            }
-         } else if (guest.isAttend()) {
-            updatedRank += attendSeries * RANK_UPDATE_DELTA;
-            if (updatedRank > MAX_RANK) {
-                updatedRank = MAX_RANK;
-            }
-        }
-        user.setAccountRank(updatedRank);
-        user.setAttendSeries(attendSeries);
-        user.setMissSeries(missSeries);
-        userService.updateUser(user);
     }
 
     @Transactional
@@ -318,11 +278,11 @@ public class MeetService {
         MeetUtils.validateMeetUpdate(body);
         Meet meet = this.findById(id);
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
-        setCommonData(meet, body);
         if (meetValidationRuleProperties.useRule) {
             Set<Meet> existingMeets = findMeetListWhereUserOwner(meet.getOwner().getId());
             MeetUtils.validateMeetPeriodForUpdate(body, meet, existingMeets, this.meetValidationRuleProperties);
         }
+        setCommonData(meet, body);
         int oldDuration = meet.getExpectedDuration();
         if (body.getExpectedDuration() != null) {
             meet.setExpectedDuration(body.getExpectedDuration());
@@ -330,7 +290,8 @@ public class MeetService {
         if (body.getCategoryId() != null) {
             setCategory(meet, body.getCategoryId());
         }
-        senderService.sendMeetUpdatedEvent(id, body, meet.getCategory().getName(), oldDuration);
+        int updatesCount = senderService.sendMeetUpdatedEvent(id, body, meet.getCategory().getName(), oldDuration);
+        rankService.updateOwnerRankForUpdate(meet, updatesCount, this.meetValidationRuleProperties);
         return updateInCacheAndReturn(meet);
     }
     @Transactional
@@ -367,6 +328,7 @@ public class MeetService {
         }
         if (body.getTime() != null) {
             meet.setDateTime(body.getTime());
+            meet.setGuestRatingProcessRequired(false);
         }
     }
 
