@@ -22,5 +22,9 @@ public class MeetValidationRuleProperties {
     public int baseLimit;
     @Value(value = "${application.meet-validation.base-account.meet-max-capacity}")
     public int baseMaxCapacity;
+    @Value(value = "${application.meet-validation.base-account.update-limit}")
+    public int baseUpdateLimit;
+    @Value(value = "${application.meet-validation.gold-account.update-limit}")
+    public int goldUpdateLimit;
 
 }

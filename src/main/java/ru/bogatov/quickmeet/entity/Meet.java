@@ -48,6 +48,12 @@ public class Meet implements Serializable {
     @Column(name = "is_rating_processed")
     private boolean isRatingProcessed;
 
+    @Column(name = "is_guest_rating_process_required")
+    private boolean isGuestRatingProcessRequired;
+
+    @Column(name = "update_count")
+    private int updateCount;
+
     @Column(name = "longevity")
     private double longevity;
 
@@ -79,4 +85,8 @@ public class Meet implements Serializable {
 
     @OneToOne(fetch = FetchType.EAGER)
     private File avatar;
+
+    @Column(name = "is_owned_attend")
+    private boolean isOwnerAttend;
+
 }

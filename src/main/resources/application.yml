@@ -2,14 +2,14 @@
 # dev-properties
 server:
   port: 8080
-
+#${random.int(8080,8085)} For Spring cloud
 spring:
   main:
     allow-circular-references: true
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+#    show-sql: true
 #    properties:
 #      hibernate:
 #        generate_statistics: true # only for development
@@ -83,9 +83,11 @@ application:
     gold-account :
       meet-limit-per-day : 10
       meet-max-capacity : 1000
+      update-limit : 4
     base-account :
       meet-limit-per-day: 2
       meet-max-capacity: 10
+      update-limit : 2
 
 
 jwt:

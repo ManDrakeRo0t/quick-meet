@@ -19,6 +19,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static ru.bogatov.quickmeet.constant.UserConstants.RANK_UPDATE_DELTA;
+
 public class MeetUtils {
 
     private static final Set<String> applicableTransitions = Set.of(
@@ -107,6 +109,12 @@ public class MeetUtils {
         }
     }
 
+
+    public static boolean isRatingProcessRequired(Meet meet) {
+        return meet.isAttendRequired()
+                && !meet.isRatingProcessed();
+    }
+
     public static void validateDayMeetCount(int limit, Set<Meet> todayMeets) {
         if (todayMeets.size() + 1 > limit) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
@@ -165,6 +173,9 @@ public class MeetUtils {
     public static void updateState(Meet meet, MeetStatus target) {
         if (!applicableTransitions.contains(meet.getMeetStatus().getValue() + target.getValue())) {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "This state not available");
+        }
+        if (target == MeetStatus.ACTIVE && LocalDateTime.now().isBefore(meet.getDateTime())) {
+            meet.setRatingProcessed(false);
         }
         meet.setMeetStatus(target);
     }
