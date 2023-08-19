@@ -1,0 +1,35 @@
+server:
+  port: 8082
+
+
+spring:
+  main:
+    allow-circular-references: true
+  application:
+    name: "quick-meet-notification-service"
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  rabbitmq:
+    host: localhost
+    username: admin
+    password: admin
+  mail:
+    host: smtp.gmail.com
+    username: quick.meet.noreply@gmail.com
+    password: sbcmfuzhmzjxtblh
+    port: 456
+    protocol: smtp
+
+mail:
+  debug: true
+
+
+jwt:
+  secret: test-secret
+
+
+sms-aero :
+  username : bogatov-danila@mail.ru
+  key : P-TEP79x8hOBvik-vUvnE6MCZ3Czassd
+  url : https://gate.smsaero.ru/v2/sms/send
