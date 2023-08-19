@@ -12,5 +12,5 @@ public class VerificationBody {
     private final VerificationSourceType verificationType;
     @NotNull
     private final VerificationStep verificationStep;
-    private final String code;
+    private String code;
 }

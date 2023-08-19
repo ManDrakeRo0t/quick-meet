@@ -23,9 +23,6 @@ public class RankService {
     public void updateOwnerRank(Meet meet) {
         User owner = meet.getOwner();
         float currentRank = owner.getAccountRank();
-        if (currentRank == MAX_RANK) {
-            return;
-        }
         float updatedRank = currentRank;
         if (meet.getGuests() != null && !meet.getGuests().isEmpty()) {
             if (meet.isAttendRequired()) {

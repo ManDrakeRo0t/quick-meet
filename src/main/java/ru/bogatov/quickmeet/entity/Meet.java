@@ -49,7 +49,7 @@ public class Meet implements Serializable {
     private boolean isRatingProcessed;
 
     @Column(name = "is_guest_rating_process_required")
-    private boolean isGuestRatingProcessRequired;
+    private boolean isGuestRatingProcessRequired; //todo false когда встреча началась раньше времени
 
     @Column(name = "update_count")
     private int updateCount;
