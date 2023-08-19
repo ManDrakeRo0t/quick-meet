@@ -30,11 +30,13 @@ import static ru.bogatov.quickmeet.constant.CacheConstants.USERS_CACHE;
 public class VerificationService {
 
     private final PhoneVerificationRecordRepository verificationRecordRepository;
+    private final NotificationEventSenderService senderService;
     private final UserRepository userRepository;
     private final CacheManager cacheManager;
 
-    public VerificationService(PhoneVerificationRecordRepository phoneVerificationRecordRepository, UserRepository userRepository, CacheManager cacheManager) {
+    public VerificationService(PhoneVerificationRecordRepository phoneVerificationRecordRepository, NotificationEventSenderService senderService, UserRepository userRepository, CacheManager cacheManager) {
         this.verificationRecordRepository = phoneVerificationRecordRepository;
+        this.senderService = senderService;
         this.userRepository = userRepository;
         this.cacheManager = cacheManager;
     }
@@ -47,7 +49,7 @@ public class VerificationService {
             if (body.getVerificationType().equals(VerificationSourceType.MAIL) && body.getVerificationStep().equals(VerificationStep.REGISTRATION)) {
                 throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Type Mail and Step Registration not applicable");
             }
-            String code;
+            String code = null;
             switch (body.getVerificationStep()) {
                 case REGISTRATION:
                     code = createOrUpdateExistingRecordForRegistration(body.getSource(), body.getVerificationType(), true);
@@ -56,7 +58,10 @@ public class VerificationService {
                     code = createOrUpdateExistingRecordForVerification(body.getSource(), body.getVerificationType(), true);
                     break;
             }
-            //todo send code
+            body.setCode(code);
+            if (!isTestCodeEnabled) {
+                this.senderService.sendVerificationNotification(body);
+            }
             return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(true).message(MESSAGE_CODE_SENT).build();
         } catch (RuntimeException ex) {
             return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(false).message(ex.getMessage()).build();

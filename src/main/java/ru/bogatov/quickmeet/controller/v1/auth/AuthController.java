@@ -21,12 +21,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody @Validated LoginForm userFromLogin){
+    public ResponseEntity<AuthenticationResponse> login(@RequestBody @Validated LoginForm userFromLogin){
         return ResponseEntity.ok(authenticationService.login(userFromLogin));
     }
 
     @PostMapping("/verification-login")
-    public ResponseEntity loginAfterVerification(@RequestParam("phone") String phoneNumber){
+    public ResponseEntity<AuthenticationResponse> loginAfterVerification(@RequestParam("phone") String phoneNumber){
         return ResponseEntity.ok(authenticationService.loginAfterVerification(phoneNumber));
     }
 
@@ -38,14 +38,14 @@ public class AuthController {
     }
 
     @PostMapping("/resetPassword")
-    public ResponseEntity resetPassword(@RequestBody @Validated LoginForm resetForm) {
+    public ResponseEntity<AuthenticationResponse> resetPassword(@RequestBody @Validated LoginForm resetForm) {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(authenticationService.resetPassword(resetForm));
     }
 
     @PostMapping("/updatePassword")
-    public ResponseEntity resetPasswordByCode(@RequestBody LoginForm body) {
+    public ResponseEntity<AuthenticationResponse> resetPasswordByCode(@RequestBody LoginForm body) {
         return ResponseEntity.ok(null);
     }
 
