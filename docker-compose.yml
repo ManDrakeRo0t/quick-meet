@@ -50,6 +50,7 @@ services:
     ports:
       - "8081:8081"
     depends_on:
+      - rabbitmq
       - postgres
       - redis
       - minio
@@ -62,11 +63,22 @@ services:
       SPRING_REDIS_PORT: 6379
       SPRING_RABBITMQ_HOST : rabbitmq
 
+  notification-app:
+    build: ./notification-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - rabbitmq
+      - core-app
+    environment:
+      SPRING_RABBITMQ_HOST : rabbitmq
+
   core-app:
     build: .
     ports:
       - "8080:8080"
     depends_on:
+      - rabbitmq
       - postgres
       - redis
       - minio
