@@ -19,8 +19,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static ru.bogatov.quickmeet.constant.UserConstants.RANK_UPDATE_DELTA;
-
 public class MeetUtils {
 
     private static final Set<String> applicableTransitions = Set.of(
@@ -175,7 +173,7 @@ public class MeetUtils {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "This state not available");
         }
         if (target == MeetStatus.ACTIVE && LocalDateTime.now().isBefore(meet.getDateTime())) {
-            meet.setRatingProcessed(false);
+            meet.setGuestRatingProcessRequired(false);
         }
         meet.setMeetStatus(target);
     }

@@ -1,7 +1,6 @@
 server:
   port: 8082
 
-
 spring:
   main:
     allow-circular-references: true
@@ -18,11 +17,11 @@ spring:
     host: smtp.gmail.com
     username: quick.meet.noreply@gmail.com
     password: sbcmfuzhmzjxtblh
-    port: 456
+    port: 587
     protocol: smtp
 
 mail:
-  debug: true
+  debug: false
 
 
 jwt:

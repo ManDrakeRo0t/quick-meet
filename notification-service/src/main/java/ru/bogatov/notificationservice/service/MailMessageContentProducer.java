@@ -15,8 +15,8 @@ public class MailMessageContentProducer {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(username);
         message.setTo(body.getSource());
-        message.setSubject("QM - подтвердите почту");
-        message.setText("Ваш код : " + body.getCode());
+        message.setSubject("[Quick meet] Подтвердите почту");
+        message.setText("Ваш код подтверждения : " + body.getCode());
         return message;
     }
 

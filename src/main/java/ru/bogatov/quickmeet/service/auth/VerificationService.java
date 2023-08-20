@@ -41,8 +41,14 @@ public class VerificationService {
         this.cacheManager = cacheManager;
     }
 
-    @Value("${phone.confirmation.disable}")
+    @Value("${application.verification.test-code}")
     private boolean isTestCodeEnabled;
+
+    @Value("${application.verification.mail}")
+    private boolean useMailService;
+
+    @Value("${application.verification.phone}")
+    private boolean useSmsService;
 
     public VerificationResponse startVerification(VerificationBody body) {
         try {
@@ -59,8 +65,17 @@ public class VerificationService {
                     break;
             }
             body.setCode(code);
-            if (!isTestCodeEnabled) {
-                this.senderService.sendVerificationNotification(body);
+            switch (body.getVerificationType()) {
+                case MAIL:
+                    if (useMailService) {
+                        this.senderService.sendVerificationNotification(body);
+                    }
+                    break;
+                case PHONE:
+                    if (useSmsService) {
+                        this.senderService.sendVerificationNotification(body);
+                    }
+                    break;
             }
             return VerificationResponse.builder().step(STEP_SEND_CODE).isSuccess(true).message(MESSAGE_CODE_SENT).build();
         } catch (RuntimeException ex) {
@@ -90,7 +105,7 @@ public class VerificationService {
             switch (body.getVerificationType()) {
                 case PHONE:
                     record.setIsVerified(true);
-                    record.setActualTo(LocalDateTime.now().plusMinutes(2)); //todo move magic number to properties
+                    record.setActualTo(LocalDateTime.now().plusMinutes(10)); //todo move magic number to properties
                     verificationRecordRepository.save(record);
                     break;
                 case MAIL:

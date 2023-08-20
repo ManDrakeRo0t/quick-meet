@@ -88,6 +88,10 @@ application:
       meet-limit-per-day: 2
       meet-max-capacity: 10
       update-limit : 2
+  verification:
+    test-code : true
+    phone : false
+    mail : true
 
 
 jwt:
@@ -97,11 +101,6 @@ jwt:
       expire: 30
     access:
       expire: 30
-
-
-phone:
-  confirmation:
-    disable: true
 
 
 error:

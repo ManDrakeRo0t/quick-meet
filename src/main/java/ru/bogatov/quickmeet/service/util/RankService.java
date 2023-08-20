@@ -66,7 +66,7 @@ public class RankService {
         if (guest.isAttend()) {
             attendSeries += 1;
             missSeries = 0;
-        } else {
+        } else if (meet.isAttendRequired()){
             missSeries +=1;
             attendSeries = 0;
         }
