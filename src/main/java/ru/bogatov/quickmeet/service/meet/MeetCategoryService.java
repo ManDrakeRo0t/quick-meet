@@ -9,6 +9,7 @@ import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.repository.meet.MeetCategoryRepository;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static ru.bogatov.quickmeet.constant.CacheConstants.MEET_CATEGORY_CACHE;
@@ -31,6 +32,11 @@ public class MeetCategoryService {
         cacheManager.getCache(MEET_CATEGORY_CACHE).evict("false");
         return meetCategory;
     }
+
+    public List<MeetCategory> findAll() {
+        return meetCategoryRepository.findAll();
+    }
+
     @Cacheable(value = MEET_CATEGORY_CACHE, key = "#returnHidden")
     public List<MeetCategory> findAllByHidden(boolean returnHidden) {
         if (returnHidden) {
@@ -52,5 +58,19 @@ public class MeetCategoryService {
         cacheManager.getCache(MEET_CATEGORY_CACHE).evict("true");
         cacheManager.getCache(MEET_CATEGORY_CACHE).evict("false");
         return meetCategory;
+    }
+
+    public void initCategories() {
+        Set<String> categories = Set.of(
+                "Клубы",
+                "Развлечения",
+                "Спорт"
+        );
+
+        categories.forEach(category -> {
+            MeetCategory toCreate = new MeetCategory();
+            toCreate.setName(category);
+            createCategory(toCreate);
+        });
     }
 }

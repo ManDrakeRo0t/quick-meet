@@ -34,7 +34,6 @@ public class RabbitMqConfig {
                 .withArgument("x-dead-letter-exchange", "")
                 .withArgument("x-dead-letter-routing-key", NOTIFICATION_EVENT_DLQ)
                 .build();
-//        return new Queue(NOTIFICATION_EVENT_QUEUE);
     }
 
     @Bean

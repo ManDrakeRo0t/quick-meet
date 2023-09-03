@@ -22,7 +22,6 @@ import ru.bogatov.quickmeet.repository.meet.MeetRepository;
 import ru.bogatov.quickmeet.service.file.FileService;
 import ru.bogatov.quickmeet.service.user.GuestService;
 import ru.bogatov.quickmeet.service.user.UserService;
-import ru.bogatov.quickmeet.service.util.CityService;
 import ru.bogatov.quickmeet.service.util.MeetUtils;
 import ru.bogatov.quickmeet.service.util.RankService;
 
@@ -37,7 +36,6 @@ public class MeetService {
 
     private final MeetRepository meetRepository;
     private final UserService userService;
-    private final CityService cityService;
     private final GuestService guestService;
     private final JwtProvider jwtProvider;
     private final MeetCategoryService meetCategoryService;
@@ -49,7 +47,6 @@ public class MeetService {
 
     public MeetService(MeetRepository meetRepository,
                        UserService userService,
-                       CityService cityService,
                        GuestService guestService,
                        JwtProvider jwtProvider,
                        MeetCategoryService meetCategoryService,
@@ -59,7 +56,6 @@ public class MeetService {
                        MeetEventSenderService senderService, RankService rankService) {
         this.meetRepository = meetRepository;
         this.userService = userService;
-        this.cityService = cityService;
         this.guestService = guestService;
         this.jwtProvider = jwtProvider;
         this.meetCategoryService = meetCategoryService;
@@ -79,20 +75,16 @@ public class MeetService {
             MeetUtils.validateOwnerClassAndMeetPeriodForCreation(body, owner, existingMeets, meetValidationRuleProperties);
         }
         Meet meet = new Meet();
-        setCity(body, owner, meet);
         setCommonData(meet, body);
         setCategory(meet, body.getCategoryId());
         meet.setLatitude(body.getLatitude());
         meet.setUpdateCount(0);
         meet.setRatingProcessed(false);
-        meet.setGuestRatingProcessRequired(true);
         meet.setAddress(body.getAddress());
         meet.setLongevity(body.getLongevity());
-        meet.setAttendRequired(body.isAttendRequired());
         meet.setMaxPeople(body.getUserAmount());
         meet.setExpectedDuration(body.getExpectedDuration());
         meet.setMeetStatus(MeetStatus.PLANNED);
-        meet.setRank(owner.getAccountRank());
         meet.setOwner(owner);
         meet.setCurrentPeople(1);
         evictOwnerListCache(body.getOwnerId());
@@ -241,6 +233,8 @@ public class MeetService {
                 } else {
                     notFoundInCache.add(uuid);
                 }
+            } else {
+                notFoundInCache.add(uuid);
             }
         });
         List<Meet> foundInDb = meetRepository.findAllById(notFoundInCache);
@@ -268,9 +262,7 @@ public class MeetService {
 
     private void processRatingUpdate(Meet meet) {
         rankService.updateOwnerRank(meet);
-        if (meet.isGuestRatingProcessRequired()) {
-            meet.getGuests().forEach(guest -> rankService.updateGuestRank(meet, guest));
-        }
+        meet.getGuests().forEach(guest -> rankService.updateGuestRank(meet, guest));
     }
 
     @Transactional
@@ -312,12 +304,6 @@ public class MeetService {
         meetIds.parallelStream().forEach(id -> updateMeetStatus(id, body, true));
     }
 
-    private void setCity(MeetCreationBody body, User owner, Meet meet) {
-        if (body.getCityId() != null) {
-            meet.setCity(cityService.getById(body.getCityId()));
-        }
-        meet.setCity(owner.getCity());
-    }
 
     private void setCommonData(Meet meet, MeetCommonData body) {
         if (!StringUtil.isNullOrEmpty(body.getName())) {
@@ -328,7 +314,6 @@ public class MeetService {
         }
         if (body.getTime() != null) {
             meet.setDateTime(body.getTime());
-            meet.setGuestRatingProcessRequired(false);
         }
     }
 

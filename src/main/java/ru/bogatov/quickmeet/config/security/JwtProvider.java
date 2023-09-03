@@ -28,7 +28,6 @@ public class JwtProvider {
     @Value("${jwt.token.refresh.expire}")
     Integer REFRESH_TOKEN_EXPIRE;
     private final static String ROLES = "role";
-    private final static String ACCOUNT_CLASS = "class";
     private final static String ALLOWED_CHATS = "allowedChats";
     private final static String ID = "id";
 
@@ -45,7 +44,6 @@ public class JwtProvider {
         HashMap<String, Object> claims = new HashMap<>();
         claims.put(ROLES,user.getRole());
         claims.put(ID,user.getId());
-        claims.put(ACCOUNT_CLASS,user.getAccountClass());
         claims.put(ALLOWED_CHATS, userService.findAllowedChatIds(user.getId()));
         return Jwts.builder()
                 .setClaims(claims)

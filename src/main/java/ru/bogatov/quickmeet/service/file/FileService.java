@@ -53,6 +53,14 @@ public class FileService {
         minioService.remove(path);
         return fileRepository.save(file);
     }
+    @SneakyThrows
+    public void deleteFileWithEntity(UUID fileId) {
+        File file = findById(fileId);
+        Path path = Path.of(file.getFileName());
+        file.setHref("deleted");
+        minioService.remove(path);
+        fileRepository.deleteById(fileId);
+    }
 
     @SneakyThrows
     public void deleteFile(String fileName) {

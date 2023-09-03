@@ -1,5 +1,6 @@
 package ru.bogatov.quickmeet.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 
@@ -32,10 +33,6 @@ public class Meet implements Serializable {
     @JoinColumn(name = "user_id")
     private User owner;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "city_id")
-    private City city;
-
     @Column(name = "max_people")
     private int maxPeople;
 
@@ -48,9 +45,6 @@ public class Meet implements Serializable {
     @Column(name = "is_rating_processed")
     private boolean isRatingProcessed;
 
-    @Column(name = "is_guest_rating_process_required")
-    private boolean isGuestRatingProcessRequired; //todo false когда встреча началась раньше времени
-
     @Column(name = "update_count")
     private int updateCount;
 
@@ -60,17 +54,20 @@ public class Meet implements Serializable {
     @Column(name = "expected_duration")
     private int expectedDuration;
 
-    @Column(name = "attend_required")
-    private boolean attendRequired;
-
-    @Column(name = "rank")
-    private float rank;
-
     @OneToMany(mappedBy = "meet", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Guest> guests;
 
     @ElementCollection(targetClass = UUID.class, fetch = FetchType.EAGER)
     private Set<UUID> userBlackList;
+
+    @Column(name = "parent_location_id")
+    private UUID locationId;
+
+    @Column(name = "adults_only")
+    private boolean adultsOnly;
+
+    @Column(name = "join_rank")
+    private double rankForJoin;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "meet_status")
@@ -82,6 +79,10 @@ public class Meet implements Serializable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private MeetCategory category;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Location location;
 
     @OneToOne(fetch = FetchType.EAGER)
     private File avatar;

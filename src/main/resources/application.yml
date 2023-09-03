@@ -1,5 +1,6 @@
 # ssh -i Desktop/id_ed25519 quickm3et@158.160.18.176
 # dev-properties
+#@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 server:
   port: 8080
 #${random.int(8080,8085)} For Spring cloud
@@ -80,14 +81,30 @@ application:
     use-rule : true
     validate-cross-time : true
     required-rank : 2.0
-    gold-account :
-      meet-limit-per-day : 10
-      meet-max-capacity : 1000
-      update-limit : 4
+    premium-account :
+      meet-limit-per-day : 3
+      meet-max-capacity : 30
+      update-limit : 1
+      meet-highlight : true
+      icon-update : base
     base-account :
-      meet-limit-per-day: 2
+      meet-limit-per-day: 1
       meet-max-capacity: 10
-      update-limit : 2
+      update-limit : 1
+      meet-highlight : false
+      icon-update : none
+    vip-account:
+      meet-limit-per-day: 5
+      meet-max-capacity: 1000
+      update-limit: 1
+      meet-highlight : true
+      icon-update : custom
+    business-account:
+      meet-limit-per-day: 10000
+      meet-max-capacity: 10000
+      update-limit: 1
+      meet-highlight : true
+      icon-update : custom
   verification:
     test-code : true
     phone : false

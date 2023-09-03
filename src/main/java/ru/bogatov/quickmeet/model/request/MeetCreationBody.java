@@ -7,14 +7,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-public class MeetCreationBody implements MeetCommonData{
+public class MeetCreationBody implements MeetCommonData {
     @NotNull
     String name;
     @NotNull
     String description;
     @NotNull
     UUID categoryId;
-    UUID cityId;
     @NotNull
     String address;
     @NotNull
@@ -28,7 +27,8 @@ public class MeetCreationBody implements MeetCommonData{
     @NotNull
     double longevity;
     @NotNull
-    boolean attendRequired;
-    @NotNull
     private Integer expectedDuration;
+    private boolean useRules;
+    private double requiredRank;
+    private boolean isForAdults;
 }

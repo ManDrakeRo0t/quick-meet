@@ -34,10 +34,6 @@ public class User implements UserForAuth, Serializable {
     @Column(name = "last_name", length = 20)
     private String lastName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "account_class")
-    private AccountClass accountClass;
-
     @Column(name = "account_rank")
     private float accountRank;
 
@@ -50,10 +46,6 @@ public class User implements UserForAuth, Serializable {
     @JsonIgnore
     @Enumerated(EnumType.STRING)
     private Role role;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "city_id")
-    private City city;
 
     @Column(name = "phone_number", length = 16)
     private String phoneNumber;
@@ -87,9 +79,6 @@ public class User implements UserForAuth, Serializable {
 
     @Column(name = "is_email_confirmed")
     private boolean isEmailConfirmed;
-
-    @OneToOne(fetch = FetchType.EAGER)
-    private BillingAccount billingAccount;
 
     @OneToOne(fetch = FetchType.EAGER)
     private File avatar;

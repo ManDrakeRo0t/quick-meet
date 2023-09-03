@@ -76,13 +76,14 @@ public class MeetUtils {
         if (owner.getAccountRank() < properties.getRequiredRankForMeetCreation()) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Owner rank less required %f", properties.getRequiredRankForMeetCreation()));
         }
-        int allowedCapacity = owner.getAccountClass() == AccountClass.BASE ? properties.baseMaxCapacity : properties.goldMaxCapacity;
+        //todo rewrite
+        int allowedCapacity = 10; //owner.getAccountClass() == AccountClass.BASE ? properties.baseMaxCapacity : properties.premiumMaxCapacity;
         if (body.getUserAmount() > allowedCapacity) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Allowed capacity is %d", allowedCapacity));
         }
         LocalDateTime dayToCreate = body.getTime();
         Set<Meet> todayMeets = existingMeets.stream().filter(meet -> isSameDay(dayToCreate, meet.getDateTime())).filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED).collect(Collectors.toSet());
-        int meetLimit = owner.getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.goldLimit;
+        int meetLimit = 2; //= owner.getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.premiumLimit;
         validateDayMeetCount(meetLimit, todayMeets);
         if (properties.validateCrossTime) {
             todayMeets = todayMeets.stream().filter(meet -> meet.getMeetStatus() != MeetStatus.FINISHED).collect(Collectors.toSet());
@@ -98,7 +99,7 @@ public class MeetUtils {
                 .filter(meet -> isSameDay(dayToCreate, meet.getDateTime()))
                 .filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED && !meet.getId().equals(origin.getId()))
                 .collect(Collectors.toSet());
-        int limit = origin.getOwner().getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.goldLimit;
+        int limit = 1; //= origin.getOwner().getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.goldLimit;
         validateDayMeetCount(limit, todayMeets);
         if (properties.validateCrossTime) {
             todayMeets = todayMeets.stream().filter(meet -> meet.getMeetStatus() != MeetStatus.FINISHED && meet.getId() != origin.getId() ).collect(Collectors.toSet());
@@ -109,8 +110,7 @@ public class MeetUtils {
 
 
     public static boolean isRatingProcessRequired(Meet meet) {
-        return meet.isAttendRequired()
-                && !meet.isRatingProcessed();
+        return !meet.isRatingProcessed();
     }
 
     public static void validateDayMeetCount(int limit, Set<Meet> todayMeets) {
@@ -171,9 +171,6 @@ public class MeetUtils {
     public static void updateState(Meet meet, MeetStatus target) {
         if (!applicableTransitions.contains(meet.getMeetStatus().getValue() + target.getValue())) {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "This state not available");
-        }
-        if (target == MeetStatus.ACTIVE && LocalDateTime.now().isBefore(meet.getDateTime())) {
-            meet.setGuestRatingProcessRequired(false);
         }
         meet.setMeetStatus(target);
     }

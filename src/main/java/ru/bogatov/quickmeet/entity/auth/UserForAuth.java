@@ -8,7 +8,6 @@ import java.util.UUID;
 
 public interface UserForAuth {
     UUID getId();
-    AccountClass getAccountClass();
     String getPhoneNumber();
     String getPassword();
     String getRefresh();

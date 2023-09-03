@@ -11,6 +11,7 @@ public class RouteConstants {
     public static final String MEET_MANAGEMENT = "/meet-management";
     public static final String CATEGORIES = "/categories";
     public static final String MEET = "/meet";
+    public static final String LOCATION = "/location";
     public static final String FILE_MANAGEMENT = "/file-management";
     public static final String FILE = "/file";
 }

@@ -1,9 +1,12 @@
 package ru.bogatov.quickmeet.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import ru.bogatov.quickmeet.model.enums.AccountClass;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -18,12 +21,24 @@ public class BillingAccount implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(name = "card_nubmer", length = 20)
-    private String cardNumber;
+    @Column(name = "user_id")
+    private UUID userId;
 
-    @Column(name = "next_bill_date")
-    private Date nextBillDate;
+    @Column(name = "locations_amount")
+    private int locationsAmount;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    private User userData;
+    @Column(name = "max_amount")
+    private int maxAmount;
+
+    @Transient
+    private AccountClass actualClass;
+
+    @Column(name = "premium_start")
+    private LocalDateTime premiumEndTime;
+
+    @Column(name = "vip_start")
+    private LocalDateTime vipEndTime;
+
+    @Column(name = "business_start")
+    private LocalDateTime businessEndTime;
 }

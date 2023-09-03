@@ -21,7 +21,6 @@ import ru.bogatov.quickmeet.repository.userdata.UserRepository;
 import ru.bogatov.quickmeet.model.request.RegistrationBody;
 import ru.bogatov.quickmeet.service.auth.VerificationService;
 import ru.bogatov.quickmeet.service.file.FileService;
-import ru.bogatov.quickmeet.service.util.CityService;
 
 import java.util.*;
 
@@ -33,15 +32,13 @@ import static ru.bogatov.quickmeet.constant.UserConstants.USER_LIST;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final CityService cityService;
     private final VerificationService verificationService;
     private final CacheManager cacheManager;
     private final FileService fileService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CityService cityService, VerificationService verificationService, CacheManager cacheManager, FileService fileService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationService verificationService, CacheManager cacheManager, FileService fileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.cityService = cityService;
         this.verificationService = verificationService;
         this.cacheManager = cacheManager;
         this.fileService = fileService;
@@ -205,11 +202,9 @@ public class UserService {
         }
         verificationService.deleteRecord(body.getPhoneNumber());
         User user = new User();
-        user.setCity(cityService.createOrGetExisting(body.getCityId(), body.getCityName()));
         user.setFirstName(body.getFirstName());
         user.setSecondName(body.getSecondName());
         user.setLastName(body.getLastName());
-        user.setAccountClass(AccountClass.BASE);
         user.setAccountRank(5f);
         user.setMissSeries(0);
         user.setAttendSeries(0);
