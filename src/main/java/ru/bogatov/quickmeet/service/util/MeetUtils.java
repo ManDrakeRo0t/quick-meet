@@ -2,6 +2,7 @@ package ru.bogatov.quickmeet.service.util;
 
 import org.springframework.data.util.Pair;
 import ru.bogatov.quickmeet.config.application.MeetValidationRuleProperties;
+import ru.bogatov.quickmeet.entity.BillingAccount;
 import ru.bogatov.quickmeet.entity.Guest;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
@@ -11,6 +12,7 @@ import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 import ru.bogatov.quickmeet.model.request.MeetCreationBody;
 import ru.bogatov.quickmeet.model.request.MeetUpdateBody;
+import ru.bogatov.quickmeet.model.validation.AccountClassProperties;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -72,18 +74,23 @@ public class MeetUtils {
         }
     }
 
-    public static void validateOwnerClassAndMeetPeriodForCreation(MeetCreationBody body, User owner, Set<Meet> existingMeets, MeetValidationRuleProperties properties) {
+    public static void validateOwnerClassAndMeetPeriodForCreation(BillingAccount billingAccount, MeetCreationBody body, User owner, Set<Meet> existingMeets, MeetValidationRuleProperties properties) {
         if (owner.getAccountRank() < properties.getRequiredRankForMeetCreation()) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Owner rank less required %f", properties.getRequiredRankForMeetCreation()));
         }
-        //todo rewrite
-        int allowedCapacity = 10; //owner.getAccountClass() == AccountClass.BASE ? properties.baseMaxCapacity : properties.premiumMaxCapacity;
-        if (body.getUserAmount() > allowedCapacity) {
+        AccountClassProperties accountProperties = AccountClassProperties.getForClass(billingAccount == null ? AccountClass.BASE : billingAccount.getActualClass(), properties);
+
+        int allowedCapacity = accountProperties.getMaxCapacity();
+
+        if (body.getUserAmount() > allowedCapacity && !body.isSkipRules()) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Allowed capacity is %d", allowedCapacity));
         }
+//        if (body.getLocationId() != null && (billingAccount == null || billingAccount.getBusinessEndTime() == null) || billingAccount.) {
+//
+//        }
         LocalDateTime dayToCreate = body.getTime();
         Set<Meet> todayMeets = existingMeets.stream().filter(meet -> isSameDay(dayToCreate, meet.getDateTime())).filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED).collect(Collectors.toSet());
-        int meetLimit = 2; //= owner.getAccountClass() == AccountClass.BASE ? properties.baseLimit : properties.premiumLimit;
+        int meetLimit = accountProperties.getLimit();
         validateDayMeetCount(meetLimit, todayMeets);
         if (properties.validateCrossTime) {
             todayMeets = todayMeets.stream().filter(meet -> meet.getMeetStatus() != MeetStatus.FINISHED).collect(Collectors.toSet());

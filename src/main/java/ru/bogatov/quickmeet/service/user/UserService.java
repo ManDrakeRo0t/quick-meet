@@ -116,6 +116,7 @@ public class UserService {
 
     public void updateRefreshToken(UUID id, String refreshToken) {
         userRepository.updateRefreshToken(id, refreshToken);
+        cacheManager.getCache(USERS_CACHE).evict(id);
     }
 
     public User findActiveAndAvailableUserByPhoneAndPassword(LoginForm loginForm) {

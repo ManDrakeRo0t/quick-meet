@@ -138,7 +138,7 @@ public class LocationService {
         billingAccountService.saveAndUpdateInCache(billingAccount);
 
         MeetUpdateStatusBody updateStatusBody = new MeetUpdateStatusBody();
-        updateStatusBody.setTargetState(MeetStatus.FINISHED);
+        updateStatusBody.setTargetState(MeetStatus.CANCELED);
 
         location.getMeets()
                 .forEach( meet -> meetService.updateMeetStatus(meet.getId(), updateStatusBody, true));
@@ -225,6 +225,31 @@ public class LocationService {
                 .filter(banner -> banner.getId().equals(bannerId))
                 .findFirst()
                 .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Banner not found"));
+    }
+
+    public Location updateBannerAvatar(UUID locationId, UUID bannerId, MultipartFile file) {
+        Location location = getLocationById(locationId);
+        Banner banner = findBanner(location, bannerId);
+        if (banner.getAvatar() != null) {
+            fileService.deleteFile(banner.getAvatar().getFileName());
+            banner.setAvatar(fileService.updateFile(banner.getAvatar().getId(), file));
+        } else {
+            banner.setAvatar(fileService.saveFile(file));
+        }
+        bannerRepository.save(banner);
+        deleteFromCache(locationId);
+        return getLocationById(locationId);
+    }
+
+    public Location deleteBannerAvatar(UUID locationId, UUID bannerId) {
+        Location location = getLocationById(locationId);
+        Banner banner = findBanner(location, bannerId);
+        if (banner.getAvatar() != null) {
+            banner.setAvatar(fileService.deleteFile(banner.getAvatar().getId()));
+        }
+        bannerRepository.save(banner);
+        deleteFromCache(locationId);
+        return getLocationById(locationId);
     }
 
 }

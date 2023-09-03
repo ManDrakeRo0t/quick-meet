@@ -23,10 +23,6 @@ public class RegistrationBody {
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
     private Date birthDate;
-    @NotNull
-    private String cityName;
-    @NotNull
-    private UUID cityId;
     private Boolean isAdmin;
 }
 

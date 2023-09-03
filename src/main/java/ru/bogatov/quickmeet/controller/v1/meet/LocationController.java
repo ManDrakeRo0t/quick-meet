@@ -50,16 +50,28 @@ public class LocationController {
     public ResponseEntity<Void> deleteLocation(@PathVariable UUID locationId, @PathVariable UUID userId) {
         return ResponseEntity.ok(locationService.deleteLocation(locationId, userId));
     }
+    @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     @PostMapping("/{id}/banner")
     public ResponseEntity<Location> createBanner(@PathVariable UUID id, @RequestBody CreateBannerBody body) {
         return ResponseEntity.status(HttpStatus.CREATED).body(locationService.createBanner(id, body));
     }
+    @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @PostMapping(path = "/{id}/banner/{bannerId}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Location> updateBannerAvatar(@PathVariable UUID id, @PathVariable UUID bannerId, @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(locationService.updateBannerAvatar(id, bannerId, file));
+    }
 
+    @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @DeleteMapping(path = "/{id}/banner/{bannerId}/avatar")
+    public ResponseEntity<Location> deleteBannerAvatar(@PathVariable UUID id, @PathVariable UUID bannerId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(locationService.deleteBannerAvatar(id, bannerId));
+    }
+    @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     @PutMapping("/{id}/banner/{bannerId}")
     public ResponseEntity<Location> updateBanner(@PathVariable UUID id, @PathVariable UUID bannerId, @RequestBody CreateBannerBody body) {
         return ResponseEntity.status(HttpStatus.CREATED).body(locationService.updateBanner(id, bannerId ,body));
     }
-
+    @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     @DeleteMapping("/{id}/banner/{bannerId}")
     public ResponseEntity<Location> deleteBanner(@PathVariable UUID id, @PathVariable UUID bannerId) {
         return ResponseEntity.status(HttpStatus.OK).body(locationService.deleteBanner(id, bannerId));

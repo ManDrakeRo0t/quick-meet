@@ -86,25 +86,25 @@ application:
       meet-max-capacity : 30
       update-limit : 1
       meet-highlight : true
-      icon-update : base
+      icon-update : BASE
     base-account :
       meet-limit-per-day: 1
       meet-max-capacity: 10
       update-limit : 1
       meet-highlight : false
-      icon-update : none
+      icon-update : NONE
     vip-account:
       meet-limit-per-day: 5
       meet-max-capacity: 1000
       update-limit: 1
       meet-highlight : true
-      icon-update : custom
+      icon-update : CUSTOM
     business-account:
       meet-limit-per-day: 10000
       meet-max-capacity: 10000
       update-limit: 1
       meet-highlight : true
-      icon-update : custom
+      icon-update : CUSTOM
   verification:
     test-code : true
     phone : false

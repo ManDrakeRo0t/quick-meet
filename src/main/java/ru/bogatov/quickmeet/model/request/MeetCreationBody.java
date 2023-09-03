@@ -28,7 +28,8 @@ public class MeetCreationBody implements MeetCommonData {
     double longevity;
     @NotNull
     private Integer expectedDuration;
-    private boolean useRules;
+    private boolean skipRules;
     private double requiredRank;
     private boolean isForAdults;
+    private UUID locationId;
 }

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bogatov.quickmeet.config.application.MeetValidationRuleProperties;
 import ru.bogatov.quickmeet.config.security.JwtProvider;
+import ru.bogatov.quickmeet.entity.BillingAccount;
 import ru.bogatov.quickmeet.entity.Guest;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
@@ -19,6 +20,7 @@ import ru.bogatov.quickmeet.model.enums.MeetStatus;
 import ru.bogatov.quickmeet.model.request.*;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
 import ru.bogatov.quickmeet.repository.meet.MeetRepository;
+import ru.bogatov.quickmeet.service.billing.BillingAccountService;
 import ru.bogatov.quickmeet.service.file.FileService;
 import ru.bogatov.quickmeet.service.user.GuestService;
 import ru.bogatov.quickmeet.service.user.UserService;
@@ -44,6 +46,7 @@ public class MeetService {
     private final FileService fileService;
     private final MeetEventSenderService senderService;
     private final RankService rankService;
+    private final BillingAccountService billingAccountService;
 
     public MeetService(MeetRepository meetRepository,
                        UserService userService,
@@ -53,7 +56,7 @@ public class MeetService {
                        CacheManager cacheManager,
                        MeetValidationRuleProperties meetValidationRuleProperties,
                        FileService fileService,
-                       MeetEventSenderService senderService, RankService rankService) {
+                       MeetEventSenderService senderService, RankService rankService, BillingAccountService billingAccountService) {
         this.meetRepository = meetRepository;
         this.userService = userService;
         this.guestService = guestService;
@@ -64,15 +67,17 @@ public class MeetService {
         this.fileService = fileService;
         this.senderService = senderService;
         this.rankService = rankService;
+        this.billingAccountService = billingAccountService;
     }
 
     @Transactional
     public MeetModificationResponse createNewMeet(MeetCreationBody body) {
         MeetUtils.validateMeetCreation(body);
         User owner = userService.findUserByID(body.getOwnerId());
+        BillingAccount billingAccount = billingAccountService.setBillingAccountClass(billingAccountService.getCustomerBillingAccount(body.getOwnerId()));
         if (meetValidationRuleProperties.useRule) {
             Set<Meet> existingMeets = findMeetListWhereUserOwner(owner.getId());
-            MeetUtils.validateOwnerClassAndMeetPeriodForCreation(body, owner, existingMeets, meetValidationRuleProperties);
+            MeetUtils.validateOwnerClassAndMeetPeriodForCreation(billingAccount,body, owner, existingMeets, meetValidationRuleProperties);
         }
         Meet meet = new Meet();
         setCommonData(meet, body);
