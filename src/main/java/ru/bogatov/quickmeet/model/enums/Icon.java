@@ -1,10 +1,8 @@
 package ru.bogatov.quickmeet.model.enums;
 
-public enum IconUpdateType {
-
-    BASE("BASE"),
-    CUSTOM("CUSTOM"),
-    NONE("NONE");
+public enum Icon {
+    DEFAULT("DEFAULT"),
+    ICON_ONE("ICON_ONE");
 
     private String value;
 
@@ -12,8 +10,7 @@ public enum IconUpdateType {
         return value;
     }
 
-    IconUpdateType(String value) {
+    Icon(String value) {
         this.value = value;
     }
-
 }

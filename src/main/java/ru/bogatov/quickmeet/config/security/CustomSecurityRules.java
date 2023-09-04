@@ -15,11 +15,8 @@ public class CustomSecurityRules {
 
     private final MeetService meetService;
 
-    private final LocationService locationService;
-
-    public CustomSecurityRules(MeetService meetService, LocationService locationService) {
+    public CustomSecurityRules(MeetService meetService) {
         this.meetService = meetService;
-        this.locationService = locationService;
     }
 
     public boolean isUserRequest(UUID userId) {
@@ -35,7 +32,7 @@ public class CustomSecurityRules {
 
     public boolean isLocationOwnerRequest(UUID locationId) {
         UUID idFromToken = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUserId();
-        Location location = locationService.getLocationById(locationId);
+        Location location = meetService.findLocationById(locationId);
         return idFromToken.equals(location.getOwner().getId());
     }
 

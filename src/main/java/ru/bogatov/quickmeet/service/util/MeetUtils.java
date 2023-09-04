@@ -72,22 +72,28 @@ public class MeetUtils {
         if (body.getExpectedDuration() == null || body.getExpectedDuration() > 8 || body.getExpectedDuration() <= 0) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet expected duration should be between 1 - 8 hours");
         }
+        if (body.getRequiredRank() < 0 || body.getRequiredRank() > 5.0) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet required rank should be between 0 - 5");
+        }
     }
 
-    public static void validateOwnerClassAndMeetPeriodForCreation(BillingAccount billingAccount, MeetCreationBody body, User owner, Set<Meet> existingMeets, MeetValidationRuleProperties properties) {
+    public static void validateOwnerClassAndMeetPeriodForCreation(BillingAccount billingAccount, MeetCreationBody body, User owner, Set<Meet> existingMeets, MeetValidationRuleProperties properties, AccountClassProperties accountProperties) {
         if (owner.getAccountRank() < properties.getRequiredRankForMeetCreation()) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Owner rank less required %f", properties.getRequiredRankForMeetCreation()));
         }
-        AccountClassProperties accountProperties = AccountClassProperties.getForClass(billingAccount == null ? AccountClass.BASE : billingAccount.getActualClass(), properties);
 
         int allowedCapacity = accountProperties.getMaxCapacity();
 
         if (body.getUserAmount() > allowedCapacity && !body.isSkipRules()) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Allowed capacity is %d", allowedCapacity));
         }
-//        if (body.getLocationId() != null && (billingAccount == null || billingAccount.getBusinessEndTime() == null) || billingAccount.) {
-//
-//        }
+        if (body.getLocationId() != null) {
+            if (billingAccount == null || billingAccount.getBusinessEndTime() == null) {
+                throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Business account required");
+            } else if (billingAccount.getBusinessEndTime().isBefore(body.getTime())) {
+                throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Business account will expire an this time");
+            }
+        }
         LocalDateTime dayToCreate = body.getTime();
         Set<Meet> todayMeets = existingMeets.stream().filter(meet -> isSameDay(dayToCreate, meet.getDateTime())).filter(meet -> meet.getMeetStatus() != MeetStatus.CANCELED).collect(Collectors.toSet());
         int meetLimit = accountProperties.getLimit();

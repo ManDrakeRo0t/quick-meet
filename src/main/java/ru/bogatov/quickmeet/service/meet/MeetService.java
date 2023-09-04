@@ -10,15 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bogatov.quickmeet.config.application.MeetValidationRuleProperties;
 import ru.bogatov.quickmeet.config.security.JwtProvider;
-import ru.bogatov.quickmeet.entity.BillingAccount;
-import ru.bogatov.quickmeet.entity.Guest;
-import ru.bogatov.quickmeet.entity.Meet;
-import ru.bogatov.quickmeet.entity.User;
+import ru.bogatov.quickmeet.entity.*;
 import ru.bogatov.quickmeet.error.ErrorUtils;
+import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
+import ru.bogatov.quickmeet.model.enums.Icon;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 import ru.bogatov.quickmeet.model.request.*;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
+import ru.bogatov.quickmeet.model.validation.AccountClassProperties;
 import ru.bogatov.quickmeet.repository.meet.MeetRepository;
 import ru.bogatov.quickmeet.service.billing.BillingAccountService;
 import ru.bogatov.quickmeet.service.file.FileService;
@@ -32,6 +32,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static ru.bogatov.quickmeet.constant.CacheConstants.*;
+import static ru.bogatov.quickmeet.model.enums.AccountClass.BASE;
 
 @Service
 public class MeetService {
@@ -47,6 +48,7 @@ public class MeetService {
     private final MeetEventSenderService senderService;
     private final RankService rankService;
     private final BillingAccountService billingAccountService;
+    private final LocationCacheService locationCacheService;
 
     public MeetService(MeetRepository meetRepository,
                        UserService userService,
@@ -56,7 +58,7 @@ public class MeetService {
                        CacheManager cacheManager,
                        MeetValidationRuleProperties meetValidationRuleProperties,
                        FileService fileService,
-                       MeetEventSenderService senderService, RankService rankService, BillingAccountService billingAccountService) {
+                       MeetEventSenderService senderService, RankService rankService, BillingAccountService billingAccountService, LocationCacheService locationCacheService) {
         this.meetRepository = meetRepository;
         this.userService = userService;
         this.guestService = guestService;
@@ -68,25 +70,42 @@ public class MeetService {
         this.senderService = senderService;
         this.rankService = rankService;
         this.billingAccountService = billingAccountService;
+        this.locationCacheService = locationCacheService;
     }
 
     @Transactional
     public MeetModificationResponse createNewMeet(MeetCreationBody body) {
         MeetUtils.validateMeetCreation(body);
         User owner = userService.findUserByID(body.getOwnerId());
-        BillingAccount billingAccount = billingAccountService.setBillingAccountClass(billingAccountService.getCustomerBillingAccount(body.getOwnerId()));
+        BillingAccount billingAccount = billingAccountService.setBillingAccountClass(
+                billingAccountService.getCustomerBillingAccount(body.getOwnerId()),
+                body.getTime()
+        );
+        AccountClassProperties accountProperties = AccountClassProperties.getForClass(billingAccount.getActualClass(), meetValidationRuleProperties);
         if (meetValidationRuleProperties.useRule) {
             Set<Meet> existingMeets = findMeetListWhereUserOwner(owner.getId());
-            MeetUtils.validateOwnerClassAndMeetPeriodForCreation(billingAccount,body, owner, existingMeets, meetValidationRuleProperties);
+            MeetUtils.validateOwnerClassAndMeetPeriodForCreation(billingAccount, body, owner, existingMeets, meetValidationRuleProperties, accountProperties);
         }
         Meet meet = new Meet();
         setCommonData(meet, body);
         setCategory(meet, body.getCategoryId());
-        meet.setLatitude(body.getLatitude());
+        meet.setIcon(Icon.DEFAULT);
+        meet.setIconUpdateType(accountProperties.getIconType());
         meet.setUpdateCount(0);
         meet.setRatingProcessed(false);
-        meet.setAddress(body.getAddress());
-        meet.setLongevity(body.getLongevity());
+        meet.setGuestRatingProcessRequired(true);
+        if (body.getLocationId() != null) {
+            Location location = locationCacheService.getLocationById(body.getLocationId());
+            enrichBusinessMeet(location,body, meet);
+        } else {
+            enrichBaseMeet(body, meet);
+        }
+        if (billingAccount.getActualClass() == BASE) {
+            meet.setRequiredRank(0);
+        } else {
+            meet.setRequiredRank(body.getRequiredRank());
+        }
+        meet.setAdultsOnly(body.isForAdults());
         meet.setMaxPeople(body.getUserAmount());
         meet.setExpectedDuration(body.getExpectedDuration());
         meet.setMeetStatus(MeetStatus.PLANNED);
@@ -99,6 +118,19 @@ public class MeetService {
                 .meet(created)
                 .token(jwtProvider.generateTokenForUser(owner))
                 .build();
+    }
+
+    private void enrichBusinessMeet(Location location, MeetCreationBody body ,Meet toEnrich) {
+        toEnrich.setLocation(location);
+        toEnrich.setLatitude(location.getLatitude());
+        toEnrich.setLongevity(location.getLongevity());
+        toEnrich.setAddress(location.getAddress());
+    }
+
+    private void enrichBaseMeet(MeetCreationBody body, Meet toEnrich) {
+        toEnrich.setLatitude(body.getLatitude());
+        toEnrich.setLongevity(body.getLongevity());
+        toEnrich.setAddress(body.getAddress());
     }
 
     @Transactional
@@ -267,7 +299,9 @@ public class MeetService {
 
     private void processRatingUpdate(Meet meet) {
         rankService.updateOwnerRank(meet);
-        meet.getGuests().forEach(guest -> rankService.updateGuestRank(meet, guest));
+        if (meet.isGuestRatingProcessRequired()) {
+            meet.getGuests().forEach(guest -> rankService.updateGuestRank(meet, guest));
+        }
     }
 
     @Transactional
@@ -319,6 +353,7 @@ public class MeetService {
         }
         if (body.getTime() != null) {
             meet.setDateTime(body.getTime());
+            meet.setGuestRatingProcessRequired(false);
         }
     }
 
@@ -337,6 +372,10 @@ public class MeetService {
     @Cacheable(value = MEET_CACHE, key = "#id")
     public Meet findById(UUID id) {
         return meetRepository.findById(id).orElseThrow(() -> ErrorUtils.buildException(ApplicationError.DATA_NOT_FOUND_ERROR, "Meet not found"));
+    }
+
+    public Location findLocationById(UUID id) {
+        return locationCacheService.getLocationById(id);
     }
 
 }

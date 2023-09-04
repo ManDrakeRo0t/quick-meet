@@ -26,6 +26,7 @@ import ru.bogatov.quickmeet.service.billing.BillingAccountService;
 import ru.bogatov.quickmeet.service.file.FileService;
 import ru.bogatov.quickmeet.service.user.UserService;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -49,12 +50,15 @@ public class LocationService {
 
     private final FileService fileService;
 
+    private final LocationCacheService locationCacheService;
+
     private final MeetService meetService;
     private final int BANNER_LIMIT = 10;
     @Transactional
     public Location createLocation(CreateLocationBody body) {
         BillingAccount billingAccount = billingAccountService.setBillingAccountClass(
-                billingAccountService.getCustomerBillingAccount(body.getUserId())
+                billingAccountService.getCustomerBillingAccount(body.getUserId()),
+                LocalDateTime.now()
         );
         validateBillingAccount(billingAccount);
 
@@ -94,13 +98,9 @@ public class LocationService {
         cacheManager.getCache(LOCATION_CACHE).put(updatedLocation.getId(), updatedLocation);
         return updatedLocation;
     }
-    @Cacheable(value = LOCATION_CACHE, key = "#locationId")
-    public Location getLocationById(UUID locationId) {
-        return locationRepository.findById(locationId).orElseThrow(() -> ErrorUtils.buildException(ApplicationError.DATA_NOT_FOUND_ERROR, "Location not found"));
-    }
 
     public Location updateLocation(UUID id, UpdateLocationBody body) {
-        Location location = getLocationById(id);
+        Location location = locationCacheService.getLocationById(id);
         if (!StringUtil.isNullOrEmpty(body.getName())) {
             location.setName(body.getName());
         }
@@ -111,7 +111,7 @@ public class LocationService {
     }
 
     public Location updateLocationAvatar(UUID id, MultipartFile file) {
-        Location location = getLocationById(id);
+        Location location = locationCacheService.getLocationById(id);
         if (location.getAvatar() != null) {
             fileService.deleteFile(location.getAvatar().getFileName());
             location.setAvatar(fileService.updateFile(location.getAvatar().getId(), file));
@@ -122,7 +122,7 @@ public class LocationService {
     }
 
     public Location deleteLocationAvatar(UUID id) {
-        Location location = getLocationById(id);
+        Location location = locationCacheService.getLocationById(id);
         if (location.getAvatar() != null) {
             location.setAvatar(fileService.deleteFile(location.getAvatar().getId()));
         }
@@ -130,7 +130,7 @@ public class LocationService {
     }
     @Transactional
     public Void deleteLocation(UUID id, UUID userId) {
-        Location location = getLocationById(id);
+        Location location = locationCacheService.getLocationById(id);
         location.setHidden(true);
 
         BillingAccount billingAccount = billingAccountService.getCustomerBillingAccount(userId);
@@ -141,7 +141,8 @@ public class LocationService {
         updateStatusBody.setTargetState(MeetStatus.CANCELED);
 
         location.getMeets()
-                .forEach( meet -> meetService.updateMeetStatus(meet.getId(), updateStatusBody, true));
+                .stream().filter(meet -> meet.getMeetStatus() == MeetStatus.PLANNED)
+                .forEach(meet -> meetService.updateMeetStatus(meet.getId(), updateStatusBody, true));
 
         saveAndUpdateInCache(location);
         return null;
@@ -173,7 +174,7 @@ public class LocationService {
     }
 
     public Location createBanner(UUID locationId, CreateBannerBody body) {
-        Location location = getLocationById(locationId);
+        Location location = locationCacheService.getLocationById(locationId);
         Set<Banner> banners = location.getBanners();
         if (banners != null && !banners.isEmpty()) {
             if (banners.size() > BANNER_LIMIT) {
@@ -196,7 +197,7 @@ public class LocationService {
 
     @Transactional
     public Location updateBanner(UUID locationId, UUID bannerId, CreateBannerBody body) {
-        Location location = getLocationById(locationId);
+        Location location = locationCacheService.getLocationById(locationId);
         Banner foundedBanner = findBanner(location, bannerId);
         if (!StringUtil.isNullOrEmpty(body.getName())) {
             foundedBanner.setName(body.getName());
@@ -206,17 +207,17 @@ public class LocationService {
         }
         bannerRepository.save(foundedBanner);
         deleteFromCache(locationId);
-        return getLocationById(locationId);
+        return locationCacheService.getLocationById(locationId);
     }
 
     @Transactional
     public Location deleteBanner(UUID locationId, UUID bannerId) {
-        Location location = getLocationById(locationId);
+        Location location = locationCacheService.getLocationById(locationId);
         Banner foundedBanner = findBanner(location, bannerId);
         bannerRepository.deleteById(bannerId);
         fileService.deleteFileWithEntity(foundedBanner.getAvatar().getId());
         deleteFromCache(locationId);
-        return getLocationById(locationId);
+        return locationCacheService.getLocationById(locationId);
     }
 
     public Banner findBanner(Location location, UUID bannerId) {
@@ -228,7 +229,7 @@ public class LocationService {
     }
 
     public Location updateBannerAvatar(UUID locationId, UUID bannerId, MultipartFile file) {
-        Location location = getLocationById(locationId);
+        Location location = locationCacheService.getLocationById(locationId);
         Banner banner = findBanner(location, bannerId);
         if (banner.getAvatar() != null) {
             fileService.deleteFile(banner.getAvatar().getFileName());
@@ -238,18 +239,18 @@ public class LocationService {
         }
         bannerRepository.save(banner);
         deleteFromCache(locationId);
-        return getLocationById(locationId);
+        return locationCacheService.getLocationById(locationId);
     }
 
     public Location deleteBannerAvatar(UUID locationId, UUID bannerId) {
-        Location location = getLocationById(locationId);
+        Location location = locationCacheService.getLocationById(locationId);
         Banner banner = findBanner(location, bannerId);
         if (banner.getAvatar() != null) {
             banner.setAvatar(fileService.deleteFile(banner.getAvatar().getId()));
         }
         bannerRepository.save(banner);
         deleteFromCache(locationId);
-        return getLocationById(locationId);
+        return locationCacheService.getLocationById(locationId);
     }
 
 }

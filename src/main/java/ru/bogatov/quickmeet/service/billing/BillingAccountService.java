@@ -30,6 +30,10 @@ public class BillingAccountService {
             throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Base type not applicable for payment");
         }
 
+        if (body.getPeriod() != null && body.getPeriod() <= 0) {
+            throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Period should be positive");
+        }
+
         BillingAccount billingAccount = getCustomerBillingAccount(body.getUserId());
         if (billingAccount == null) {
             billingAccount = createBillingAccount(body.getUserId());
@@ -50,8 +54,8 @@ public class BillingAccountService {
                     break;
             }
         }
-        if (body.getLocations() != null) {
-            billingAccount.setLocationsAmount(billingAccount.getLocationsAmount() + body.getLocations());
+        if (body.getLocations() != null && billingAccount.getBusinessEndTime() != null && billingAccount.getBusinessEndTime().isAfter(LocalDateTime.now())) {
+            billingAccount.setMaxAmount(billingAccount.getMaxAmount() + body.getLocations());
         }
         return  saveAndUpdateInCache(billingAccount);
     }
@@ -60,19 +64,20 @@ public class BillingAccountService {
         return billingAccountRepository.findBillingAccountByUserId(customerId).orElse(null);
     }
 
-    public BillingAccount setBillingAccountClass(BillingAccount billingAccount) {
+    public BillingAccount setBillingAccountClass(BillingAccount billingAccount, LocalDateTime time) {
         if (billingAccount == null) {
-            return null;
+            billingAccount = new BillingAccount();
+            billingAccount.setActualClass(AccountClass.BASE);
+            return billingAccount;
         }
         billingAccount.setActualClass(AccountClass.BASE);
-        LocalDateTime now = LocalDateTime.now();
-        if (billingAccount.getPremiumEndTime().isAfter(now)) {
+        if (billingAccount.getPremiumEndTime() != null && billingAccount.getPremiumEndTime().isAfter(time)) {
             billingAccount.setActualClass(AccountClass.PREMIUM);
         }
-        if (billingAccount.getVipEndTime().isAfter(now)) {
+        if (billingAccount.getVipEndTime() != null && billingAccount.getVipEndTime().isAfter(time)) {
             billingAccount.setActualClass(AccountClass.VIP);
         }
-        if (billingAccount.getBusinessEndTime().isAfter(now)) {
+        if (billingAccount.getBusinessEndTime() != null && billingAccount.getBusinessEndTime().isAfter(time)) {
             billingAccount.setActualClass(AccountClass.BUSINESS);
         }
         return billingAccount;
@@ -80,7 +85,7 @@ public class BillingAccountService {
 
     public BillingAccount createBillingAccount(UUID userId) {
         BillingAccount account = new BillingAccount();
-        account.setId(userId);
+        account.setUserId(userId);
         account.setLocationsAmount(0);
         account.setMaxAmount(0);
         return account;

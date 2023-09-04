@@ -2,6 +2,8 @@ package ru.bogatov.quickmeet.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import ru.bogatov.quickmeet.model.enums.Icon;
+import ru.bogatov.quickmeet.model.enums.IconUpdateType;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 
 import javax.persistence.*;
@@ -80,12 +82,32 @@ public class Meet implements Serializable {
     @JoinColumn(name = "category_id")
     private MeetCategory category;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "icon_type")
+    private IconUpdateType iconUpdateType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "icon")
+    private Icon icon;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     private Location location;
 
+    @Column(name = "is_guest_rating_process_required")
+    private boolean isGuestRatingProcessRequired;
+
     @OneToOne(fetch = FetchType.EAGER)
     private File avatar;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    private File iconAvatar;
+
+    @Column(name = "required_rank")
+    private double requiredRank;
+
+    @Column(name = "is_adults")
+    private boolean isForAdults;
 
     @Column(name = "is_owned_attend")
     private boolean isOwnerAttend;

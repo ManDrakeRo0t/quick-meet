@@ -44,11 +44,6 @@ public class AuthController {
                 .body(authenticationService.resetPassword(resetForm));
     }
 
-    @PostMapping("/updatePassword")
-    public ResponseEntity<AuthenticationResponse> resetPasswordByCode(@RequestBody LoginForm body) {
-        return ResponseEntity.ok(null);
-    }
-
     @PostMapping("/refresh/{refreshToken}")
     public ResponseEntity<AuthenticationResponse> refreshToken(@PathVariable String refreshToken){
         return ResponseEntity.ok(authenticationService.refreshTokenPair(refreshToken));

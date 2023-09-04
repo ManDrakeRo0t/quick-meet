@@ -71,18 +71,20 @@ public class RankService {
             attendSeries += 1;
             missSeries = 0;
         } else {
-            missSeries +=1;
+            missSeries += 1;
             attendSeries = 0;
         }
-        if (!guest.isAttend()) {
-            updatedRank -= missSeries * RANK_UPDATE_DELTA;
-            if (updatedRank < MIN_RANK) {
-                updatedRank = MIN_RANK;
-            }
-        } else  {
-            updatedRank += attendSeries * RANK_UPDATE_DELTA;
-            if (updatedRank > MAX_RANK) {
-                updatedRank = MAX_RANK;
+        if (meet.isGuestRatingProcessRequired()) {
+            if (!guest.isAttend()) {
+                updatedRank -= missSeries * RANK_UPDATE_DELTA;
+                if (updatedRank < MIN_RANK) {
+                    updatedRank = MIN_RANK;
+                }
+            } else {
+                updatedRank += attendSeries * RANK_UPDATE_DELTA;
+                if (updatedRank > MAX_RANK) {
+                    updatedRank = MAX_RANK;
+                }
             }
         }
         user.setAccountRank(updatedRank);

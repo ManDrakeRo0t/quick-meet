@@ -9,6 +9,7 @@ import ru.bogatov.quickmeet.entity.BillingAccount;
 import ru.bogatov.quickmeet.model.request.PaymentCreationBody;
 import ru.bogatov.quickmeet.service.billing.BillingAccountService;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @RestController
@@ -20,14 +21,19 @@ public class BillingAccountController {
     @PreAuthorize("@customSecurityRules.isUserRequest(#body.userId) || hasAnyAuthority('ADMIN')")
     @PostMapping()
     public ResponseEntity<BillingAccount> createPayment(@RequestBody PaymentCreationBody body) {
-        return ResponseEntity.ok(billingAccountService.createPayment(body));
+        return ResponseEntity.ok(billingAccountService.setBillingAccountClass(
+                billingAccountService.createPayment(body),
+                LocalDateTime.now()
+        ));
     }
     @PreAuthorize("@customSecurityRules.isUserRequest(#id) || hasAnyAuthority('ADMIN')")
     @GetMapping("/user/{id}")
     public ResponseEntity<BillingAccount> getBillingAccount(@PathVariable UUID id) {
         return ResponseEntity.ok(
                 billingAccountService.setBillingAccountClass(
-                        billingAccountService.getCustomerBillingAccount(id))
+                        billingAccountService.getCustomerBillingAccount(id),
+                        LocalDateTime.now()
+                )
         );
     }
 
