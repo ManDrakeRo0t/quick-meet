@@ -140,9 +140,11 @@ public class LocationService {
         MeetUpdateStatusBody updateStatusBody = new MeetUpdateStatusBody();
         updateStatusBody.setTargetState(MeetStatus.CANCELED);
 
-        location.getMeets()
-                .stream().filter(meet -> meet.getMeetStatus() == MeetStatus.PLANNED)
-                .forEach(meet -> meetService.updateMeetStatus(meet.getId(), updateStatusBody, true));
+        if (location.getMeets() != null) {
+            location.getMeets()
+                    .stream().filter(meet -> meet.getMeetStatus() == MeetStatus.PLANNED)
+                    .forEach(meet -> meetService.updateMeetStatus(meet.getId(), updateStatusBody, true));
+        }
 
         saveAndUpdateInCache(location);
         return null;

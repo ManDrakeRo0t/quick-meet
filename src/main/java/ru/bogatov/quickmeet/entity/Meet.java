@@ -112,4 +112,7 @@ public class Meet implements Serializable {
     @Column(name = "is_owned_attend")
     private boolean isOwnerAttend;
 
+    @Column(name = "is_high_lighted")
+    private boolean isHighLighted;
+
 }

@@ -2,11 +2,15 @@ package ru.bogatov.quickmeet.service.util;
 
 import org.springframework.stereotype.Service;
 import ru.bogatov.quickmeet.config.application.MeetValidationRuleProperties;
+import ru.bogatov.quickmeet.entity.BillingAccount;
 import ru.bogatov.quickmeet.entity.Guest;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
-import ru.bogatov.quickmeet.model.enums.AccountClass;
+import ru.bogatov.quickmeet.model.validation.AccountClassProperties;
+import ru.bogatov.quickmeet.service.billing.BillingAccountService;
 import ru.bogatov.quickmeet.service.user.UserService;
+
+import java.time.LocalDateTime;
 
 import static ru.bogatov.quickmeet.constant.UserConstants.*;
 import static ru.bogatov.quickmeet.constant.UserConstants.MIN_RANK;
@@ -15,24 +19,21 @@ import static ru.bogatov.quickmeet.constant.UserConstants.MIN_RANK;
 public class RankService {
 
     private final UserService userService;
+    private final BillingAccountService billingAccountService;
 
-    public RankService(UserService userService) {
+    public RankService(UserService userService, BillingAccountService billingAccountService) {
         this.userService = userService;
+        this.billingAccountService = billingAccountService;
     }
 
     public void updateOwnerRank(Meet meet) {
         User owner = meet.getOwner();
         float currentRank = owner.getAccountRank();
         float updatedRank = currentRank;
-        //todo rewrite
-//        if (meet.getGuests() != null && !meet.getGuests().isEmpty()) {
-//            if (meet.isAttendRequired()) {
-//                long attendedGuests = meet.getGuests().stream().filter(Guest::isAttend).count();
-//                updatedRank += attendedGuests * RANK_UPDATE_DELTA;
-//            } else {
-//                updatedRank += RANK_UPDATE_DELTA;
-//            }
-//        }
+        if (meet.getGuests() != null && !meet.getGuests().isEmpty()) {
+            long attendedGuests = meet.getGuests().stream().filter(Guest::isAttend).count();
+            updatedRank += (float) 1 / meet.getMaxPeople() * attendedGuests;
+        }
         updatedRank = Math.min(updatedRank, MAX_RANK);
         if (!meet.isOwnerAttend()) {
             updatedRank -= RANK_UPDATE_DELTA * 10;
@@ -46,11 +47,11 @@ public class RankService {
 
     public void updateOwnerRankForUpdate(Meet meet, int updates, MeetValidationRuleProperties properties) {
         User owner = meet.getOwner();
-        //todo rewrite
+        BillingAccount account = billingAccountService.getCustomerBillingAccount(owner.getId());
         float currentRank = owner.getAccountRank();
-        int updateLimit = 1;
-//        float currentRank = meet.getRank();
-//        int updateLimit = owner.getAccountClass() == AccountClass.BASE ? properties.baseUpdateLimit : properties.premiumUpdateLimit;
+        int updateLimit = AccountClassProperties.getForClass(
+                billingAccountService.setBillingAccountClass(account, LocalDateTime.now()).getActualClass(),
+                properties).updateLimit;
         if (meet.getUpdateCount() < updateLimit && updates > updateLimit) {
             currentRank -= (RANK_UPDATE_DELTA * (updates - updateLimit));
         } else  {

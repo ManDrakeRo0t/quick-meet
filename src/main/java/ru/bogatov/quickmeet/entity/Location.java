@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Set;
 import java.util.UUID;
 
@@ -12,7 +13,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Table(name = "location")
-public class Location {
+public class Location implements Serializable {
 
     private static final long serialVersionUID = 67275917588L;
 

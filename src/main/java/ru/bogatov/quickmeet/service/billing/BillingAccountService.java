@@ -114,7 +114,7 @@ public class BillingAccountService {
         } else {
             account.setVipEndTime(now.plusMonths(period));
         }
-        if (account.getPremiumEndTime().isAfter(now)) {
+        if (account.getPremiumEndTime() != null && account.getPremiumEndTime().isAfter(now)) {
             updatePremiumPeriod(account, period);
         }
     }
@@ -127,8 +127,10 @@ public class BillingAccountService {
         } else {
             account.setBusinessEndTime(now.plusMonths(period));
         }
-        if (account.getVipEndTime().isAfter(now)) {
+        if (account.getVipEndTime() != null && account.getVipEndTime().isAfter(now)) {
             updateVipPeriod(account, period);
+        } else {
+            updatePremiumPeriod(account, period);
         }
     }
 }

@@ -90,6 +90,7 @@ public class MeetService {
         setCommonData(meet, body);
         setCategory(meet, body.getCategoryId());
         meet.setIcon(Icon.DEFAULT);
+        meet.setHighLighted(accountProperties.isHighlightMeet());
         meet.setIconUpdateType(accountProperties.getIconType());
         meet.setUpdateCount(0);
         meet.setRatingProcessed(false);

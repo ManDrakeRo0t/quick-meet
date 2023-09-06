@@ -29,19 +29,20 @@ public class LocationController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     public ResponseEntity<Location> updateLocation(@PathVariable UUID id, @RequestBody UpdateLocationBody body) {
         return ResponseEntity.ok(locationService.updateLocation(id, body));
     }
 
     @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     @PostMapping(path = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Location> updateMeetAvatar(@PathVariable UUID id, @RequestPart("file") MultipartFile file) {
+    public ResponseEntity<Location> updateLocationAvatar(@PathVariable UUID id, @RequestPart("file") MultipartFile file) {
         return ResponseEntity.ok(locationService.updateLocationAvatar(id, file));
     }
 
     @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     @DeleteMapping(path = "/{id}/avatar")
-    public ResponseEntity<Location> deleteMeetAvatar(@PathVariable UUID id) {
+    public ResponseEntity<Location> deleteLocationAvatar(@PathVariable UUID id) {
         return ResponseEntity.ok(locationService.deleteLocationAvatar(id));
     }
 
