@@ -35,7 +35,7 @@ public class RankService {
             updatedRank += (float) 1 / meet.getMaxPeople() * attendedGuests;
         }
         updatedRank = Math.min(updatedRank, MAX_RANK);
-        if (!meet.isOwnerAttend()) {
+        if (!meet.isOwnerAttend() && meet.getLocationId() != null) {
             updatedRank -= RANK_UPDATE_DELTA * 10;
         }
         updatedRank = Math.max(updatedRank, MIN_RANK);

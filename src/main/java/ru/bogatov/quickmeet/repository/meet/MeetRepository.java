@@ -31,6 +31,8 @@ public interface MeetRepository extends JpaRepository<Meet, UUID> {
     @Transactional
     @Query(nativeQuery = true, value = "update meet set meet_status = 'ACTIVE' where id = ?1")
     void setStatusActive(UUID meetId);
+    @Query(nativeQuery = true, value = "select cast(id as varchar) as id from meet where parent_location_id = ?1")
+    Set<UUID> findAllByLocationId(UUID id);
 
 
 }

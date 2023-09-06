@@ -68,9 +68,6 @@ public class Meet implements Serializable {
     @Column(name = "adults_only")
     private boolean adultsOnly;
 
-    @Column(name = "join_rank")
-    private double rankForJoin;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "meet_status")
     private MeetStatus meetStatus;

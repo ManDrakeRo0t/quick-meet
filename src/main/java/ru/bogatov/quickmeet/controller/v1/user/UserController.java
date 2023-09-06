@@ -6,9 +6,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bogatov.quickmeet.constant.RouteConstants;
+import ru.bogatov.quickmeet.entity.Location;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.model.request.UserUpdateBody;
+import ru.bogatov.quickmeet.service.meet.LocationService;
 import ru.bogatov.quickmeet.service.meet.MeetService;
 import ru.bogatov.quickmeet.service.user.UserService;
 
@@ -18,13 +20,14 @@ import java.util.*;
 @RequestMapping(RouteConstants.API_V1 + RouteConstants.USER_MANAGEMENT + RouteConstants.USER)
 public class UserController {
 
-    UserService userService;
+    private final UserService userService;
+    private final MeetService meetService;
+    private final LocationService locationService;
 
-    MeetService meetService;
-
-    public UserController(UserService userService, MeetService meetService) {
+    public UserController(UserService userService, MeetService meetService, LocationService locationService) {
         this.userService = userService;
         this.meetService = meetService;
+        this.locationService = locationService;
     }
 
     @GetMapping("/{id}")
@@ -65,6 +68,12 @@ public class UserController {
     @GetMapping("/{id}/meet-list/owner")
     public ResponseEntity<Set<Meet>> getMeetListWhereUserOwner(@PathVariable UUID id) {
         return ResponseEntity.ok(meetService.findMeetListWhereUserOwner(id));
+    }
+
+    @PreAuthorize("@customSecurityRules.isUserRequest(#id) || hasAnyAuthority('ADMIN')")
+    @GetMapping("/{id}/locations")
+    public ResponseEntity<Set<Location>> getUserLocations(@PathVariable UUID id) {
+        return ResponseEntity.ok(locationService.findUserLocations(id));
     }
 
 }

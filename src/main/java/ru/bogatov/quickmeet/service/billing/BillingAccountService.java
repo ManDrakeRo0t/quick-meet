@@ -23,6 +23,7 @@ public class BillingAccountService {
     private final BillingAccountRepository billingAccountRepository;
 
     private final CacheManager cacheManager;
+    private final int MAX_LOCATION_AMOUNT = 5;
 
     public BillingAccount createPayment(PaymentCreationBody body) {
 
@@ -54,7 +55,10 @@ public class BillingAccountService {
                     break;
             }
         }
-        if (body.getLocations() != null && billingAccount.getBusinessEndTime() != null && billingAccount.getBusinessEndTime().isAfter(LocalDateTime.now())) {
+        if (body.getLocations() != null &&
+                billingAccount.getBusinessEndTime() != null &&
+                billingAccount.getBusinessEndTime().isAfter(LocalDateTime.now()) &&
+                billingAccount.getLocationsAmount() + body.getLocations() <= MAX_LOCATION_AMOUNT) {
             billingAccount.setMaxAmount(billingAccount.getMaxAmount() + body.getLocations());
         }
         return  saveAndUpdateInCache(billingAccount);
@@ -129,7 +133,7 @@ public class BillingAccountService {
         }
         if (account.getVipEndTime() != null && account.getVipEndTime().isAfter(now)) {
             updateVipPeriod(account, period);
-        } else {
+        } else if (account.getPremiumEndTime() != null && account.getPremiumEndTime().isAfter(now)){
             updatePremiumPeriod(account, period);
         }
     }

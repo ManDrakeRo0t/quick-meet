@@ -25,5 +25,8 @@ public class SearchMeetBody {
     private LocalDateTime dateFrom;
     @NotNull
     private LocalDateTime dateTo;
-
+    @NotNull
+    private boolean notFull;
+    @NotNull
+    private boolean isForAdult;
 }

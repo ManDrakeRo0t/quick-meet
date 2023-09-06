@@ -13,6 +13,7 @@ import ru.bogatov.quickmeet.model.request.MeetUpdateBody;
 import ru.bogatov.quickmeet.model.request.MeetUpdateStatusBody;
 import ru.bogatov.quickmeet.model.request.SearchMeetBody;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
+import ru.bogatov.quickmeet.model.response.MeetSearchResponse;
 import ru.bogatov.quickmeet.service.meet.MeetService;
 
 import java.util.Set;
@@ -63,7 +64,7 @@ public class MeetController {
     }
 
     @PostMapping("/search")
-    public ResponseEntity<Set<Meet>> searchMeet(@RequestBody SearchMeetBody body) {
+    public ResponseEntity<MeetSearchResponse> searchMeet(@RequestBody SearchMeetBody body) {
         return ResponseEntity.ok(meetService.search(body));
     }
     @PreAuthorize("@customSecurityRules.isUserRequest(#userId) || hasAnyAuthority('ADMIN')")

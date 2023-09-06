@@ -12,12 +12,12 @@ import ru.bogatov.quickmeet.config.application.MeetValidationRuleProperties;
 import ru.bogatov.quickmeet.config.security.JwtProvider;
 import ru.bogatov.quickmeet.entity.*;
 import ru.bogatov.quickmeet.error.ErrorUtils;
-import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.enums.Icon;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 import ru.bogatov.quickmeet.model.request.*;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
+import ru.bogatov.quickmeet.model.response.MeetSearchResponse;
 import ru.bogatov.quickmeet.model.validation.AccountClassProperties;
 import ru.bogatov.quickmeet.repository.meet.MeetRepository;
 import ru.bogatov.quickmeet.service.billing.BillingAccountService;
@@ -97,6 +97,9 @@ public class MeetService {
         meet.setGuestRatingProcessRequired(true);
         if (body.getLocationId() != null) {
             Location location = locationCacheService.getLocationById(body.getLocationId());
+            if (location.isHidden()) {
+                throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Location not applicable");
+            }
             enrichBusinessMeet(location,body, meet);
         } else {
             enrichBaseMeet(body, meet);
@@ -126,6 +129,7 @@ public class MeetService {
         toEnrich.setLatitude(location.getLatitude());
         toEnrich.setLongevity(location.getLongevity());
         toEnrich.setAddress(location.getAddress());
+        toEnrich.setLocationId(location.getId());
     }
 
     private void enrichBaseMeet(MeetCreationBody body, Meet toEnrich) {
@@ -139,7 +143,8 @@ public class MeetService {
         Meet meet = this.findById(meetId);
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
         MeetUtils.checkIsFreeAndThrow(meet);
-        MeetUtils.checkIsGuestApplicable(meet, userId);
+        User user = userService.findUserByID(userId);
+        MeetUtils.checkIsGuestApplicable(meet, user);
         Guest guest = guestService.createGuest(meet, userId);
         MeetUtils.addGuest(meet, guest);
         evictGuestListCache(userId);
@@ -224,7 +229,7 @@ public class MeetService {
         return updatedMeet;
     }
 
-    public Set<Meet> search(SearchMeetBody body) {
+    public MeetSearchResponse search(SearchMeetBody body) {
         Pair<Pair<Double, Double>, Pair<Double, Double>> border =
                 MeetUtils.calculateBorder(body.getLatitude(), body.getLongevity(), body.getRadius());
         List<String> stringStatuses = body.getStatuses().stream().map(MeetStatus::getValue).collect(Collectors.toList());
@@ -237,7 +242,14 @@ public class MeetService {
                 body.getDateFrom(),
                 body.getDateTo()
         );
-        return findMeetListByIds(foundMeetIds);
+        Set<Location> foundLocations = locationCacheService.search(
+                border.getFirst().getFirst(),
+                border.getSecond().getFirst(),
+                border.getFirst().getSecond(),
+                border.getSecond().getSecond());
+        return MeetSearchResponse.builder()
+                .meets(findMeetListByIds(foundMeetIds))
+                .locations(foundLocations).build();
     }
 
 
@@ -373,6 +385,12 @@ public class MeetService {
     @Cacheable(value = MEET_CACHE, key = "#id")
     public Meet findById(UUID id) {
         return meetRepository.findById(id).orElseThrow(() -> ErrorUtils.buildException(ApplicationError.DATA_NOT_FOUND_ERROR, "Meet not found"));
+    }
+
+    public Set<Meet> findMeetsByLocationId(UUID locationId) {
+        return findMeetListByIds(
+                meetRepository.findAllByLocationId(locationId)
+        );
     }
 
     public Location findLocationById(UUID id) {

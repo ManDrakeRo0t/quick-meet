@@ -1,6 +1,7 @@
 package ru.bogatov.quickmeet.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,6 +15,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Table(name = "location")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Location implements Serializable {
 
     private static final long serialVersionUID = 67275917588L;
@@ -29,8 +31,8 @@ public class Location implements Serializable {
     private List<Banner> banners;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "location", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Meet> meets;
+    @OneToMany(mappedBy = "location", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Set<Meet> meets;
 
     @Column(name = "name", length = 60)
     private String name;
@@ -41,6 +43,7 @@ public class Location implements Serializable {
     @Column(name = "description")
     private String description;
 
+    @JsonIgnore
     @Column(name = "is_hidden")
     private boolean isHidden;
 

@@ -7,18 +7,18 @@ import ru.bogatov.quickmeet.entity.Guest;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.error.ErrorUtils;
-import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 import ru.bogatov.quickmeet.model.request.MeetCreationBody;
 import ru.bogatov.quickmeet.model.request.MeetUpdateBody;
 import ru.bogatov.quickmeet.model.validation.AccountClassProperties;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MeetUtils {
@@ -39,15 +39,21 @@ public class MeetUtils {
         }
     }
 
-    public static void checkIsGuestApplicable(Meet meet, UUID guestId) {
-        if (meet.getOwner().getId().equals(guestId)) {
+    public static void checkIsGuestApplicable(Meet meet, User user) {
+        if (meet.getOwner().getId().equals(user.getId())) {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "Owner can not be guest");
         }
-        if (meet.getUserBlackList() != null && !meet.getUserBlackList().isEmpty() && meet.getUserBlackList().contains(guestId)) {
+        if (meet.getUserBlackList() != null && !meet.getUserBlackList().isEmpty() && meet.getUserBlackList().contains(user.getId())) {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "User in black list");
         }
-        if (meet.getGuests().stream().anyMatch(guest -> guest.getUserId().equals(guestId))) {
+        if (meet.getGuests().stream().anyMatch(guest -> guest.getUserId().equals(user.getId()))) {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "User already joined");
+        }
+        if (user.getAccountRank() < meet.getRequiredRank()) {
+            throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "Required rank is " + meet.getRequiredRank());
+        }
+        if (ChronoUnit.YEARS.between(Instant.ofEpochMilli(user.getBirthDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate(), LocalDate.now()) < 18) {
+            throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "Guest is not adult");
         }
     }
 
