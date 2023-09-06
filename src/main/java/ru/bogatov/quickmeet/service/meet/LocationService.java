@@ -4,7 +4,6 @@ import io.netty.util.internal.StringUtil;
 import lombok.AllArgsConstructor;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,10 +26,7 @@ import ru.bogatov.quickmeet.service.file.FileService;
 import ru.bogatov.quickmeet.service.user.UserService;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static ru.bogatov.quickmeet.constant.CacheConstants.LOCATION_CACHE;
 
@@ -177,17 +173,18 @@ public class LocationService {
 
     public Location createBanner(UUID locationId, CreateBannerBody body) {
         Location location = locationCacheService.getLocationById(locationId);
-        Set<Banner> banners = location.getBanners();
+        List<Banner> banners = location.getBanners();
         if (banners != null && !banners.isEmpty()) {
             if (banners.size() > BANNER_LIMIT) {
                 throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Reached max banners capacity limit");
             }
         } else {
-            location.setBanners(new HashSet<>());
+            location.setBanners(new ArrayList<>());
         }
         Banner banner = new Banner();
         banner.setName(body.getName());
         banner.setDescription(body.getDescription());
+        banner.setLocation(location);
         banner = bannerRepository.save(banner);
         location.getBanners().add(banner);
         return saveAndUpdateInCache(location);
@@ -212,12 +209,16 @@ public class LocationService {
         return locationCacheService.getLocationById(locationId);
     }
 
-    @Transactional
     public Location deleteBanner(UUID locationId, UUID bannerId) {
         Location location = locationCacheService.getLocationById(locationId);
         Banner foundedBanner = findBanner(location, bannerId);
-        bannerRepository.deleteById(bannerId);
-        fileService.deleteFileWithEntity(foundedBanner.getAvatar().getId());
+        UUID avatarId = null;
+        if (foundedBanner.getAvatar() != null) {
+            avatarId = foundedBanner.getAvatar().getId();
+        }
+        foundedBanner.setAvatar(null);
+        bannerRepository.delete(foundedBanner);
+        fileService.deleteFileWithEntity(avatarId);
         deleteFromCache(locationId);
         return locationCacheService.getLocationById(locationId);
     }

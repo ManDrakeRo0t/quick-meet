@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,12 +25,12 @@ public class Location implements Serializable {
     @OneToOne(fetch = FetchType.EAGER)
     private File avatar;
 
-    @OneToMany(mappedBy = "location", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Banner> banners;
+    @OneToMany(mappedBy = "location", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private List<Banner> banners;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "location", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Meet> meets;
+    @OneToMany(mappedBy = "location", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<Meet> meets;
 
     @Column(name = "name", length = 60)
     private String name;

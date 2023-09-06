@@ -55,6 +55,7 @@ public class FileService {
     }
     @SneakyThrows
     public void deleteFileWithEntity(UUID fileId) {
+        if (fileId == null) return;
         File file = findById(fileId);
         Path path = Path.of(file.getFileName());
         file.setHref("deleted");
