@@ -82,7 +82,7 @@ public class RankService {
                     updatedRank = MIN_RANK;
                 }
             } else {
-                updatedRank += attendSeries * RANK_UPDATE_DELTA;
+                updatedRank += attendSeries * RANK_UPDATE_DELTA / 2;
                 if (updatedRank > MAX_RANK) {
                     updatedRank = MAX_RANK;
                 }
