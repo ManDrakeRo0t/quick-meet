@@ -1,6 +1,7 @@
 package ru.bogatov.quickmeet.service.meet;
 
 import io.netty.util.internal.StringUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
@@ -12,9 +13,7 @@ import ru.bogatov.quickmeet.config.application.MeetValidationRuleProperties;
 import ru.bogatov.quickmeet.config.security.JwtProvider;
 import ru.bogatov.quickmeet.entity.*;
 import ru.bogatov.quickmeet.error.ErrorUtils;
-import ru.bogatov.quickmeet.model.enums.ApplicationError;
-import ru.bogatov.quickmeet.model.enums.Icon;
-import ru.bogatov.quickmeet.model.enums.MeetStatus;
+import ru.bogatov.quickmeet.model.enums.*;
 import ru.bogatov.quickmeet.model.request.*;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
 import ru.bogatov.quickmeet.model.response.MeetSearchResponse;
@@ -35,6 +34,7 @@ import static ru.bogatov.quickmeet.constant.CacheConstants.*;
 import static ru.bogatov.quickmeet.model.enums.AccountClass.BASE;
 
 @Service
+@Slf4j
 public class MeetService {
 
     private final MeetRepository meetRepository;
@@ -94,6 +94,7 @@ public class MeetService {
         meet.setIconUpdateType(accountProperties.getIconType());
         meet.setUpdateCount(0);
         meet.setRatingProcessed(false);
+        meet.setFull(false);
         meet.setGuestRatingProcessRequired(true);
         if (body.getLocationId() != null) {
             Location location = locationCacheService.getLocationById(body.getLocationId());
@@ -169,6 +170,21 @@ public class MeetService {
         return updateInCacheAndReturn(meet);
     }
 
+    public Meet updateMeetIconAvatar(UUID meetId, MultipartFile file) {
+        Meet meet = findById(meetId);
+        if (meet.getIconUpdateType() != IconUpdateType.CUSTOM) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet not support custom icons")
+        }
+        MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
+        if (meet.getIcon() != null) {
+            fileService.deleteFile(meet.getIconAvatar().getFileName());
+            meet.setIconAvatar(fileService.updateFile(meet.getIconAvatar().getId(), file));
+        } else {
+            meet.setIconAvatar(fileService.saveFile(file));
+        }
+        return updateInCacheAndReturn(meet);
+    }
+
     public Meet deleteMeetAvatar(UUID meetId) {
         Meet meet = findById(meetId);
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
@@ -176,6 +192,18 @@ public class MeetService {
             meet.setAvatar(fileService.deleteFile(meet.getAvatar().getId()));
         }
         senderService.sendMeetAvatarUpdatedEvent(meetId);
+        return updateInCacheAndReturn(meet);
+    }
+
+    public Meet deleteMeetIconAvatar(UUID meetId) {
+        Meet meet = findById(meetId);
+        if (meet.getIconUpdateType() != IconUpdateType.CUSTOM) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet not support custom icons");
+        }
+        MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
+        if (meet.getIconAvatar() != null) {
+            meet.setIconAvatar(fileService.deleteFile(meet.getIconAvatar().getId()));
+        }
         return updateInCacheAndReturn(meet);
     }
 
@@ -224,6 +252,7 @@ public class MeetService {
     }
 
     private Meet updateInCacheAndReturn(Meet meet) {
+        log.info("update meet id : {}, state : {}", meet.getId(), meet.getMeetStatus());
         Meet updatedMeet = meetRepository.save(meet);
         cacheManager.getCache(MEET_CACHE).put(updatedMeet.getId(), updatedMeet);
         return updatedMeet;
@@ -233,15 +262,28 @@ public class MeetService {
         Pair<Pair<Double, Double>, Pair<Double, Double>> border =
                 MeetUtils.calculateBorder(body.getLatitude(), body.getLongevity(), body.getRadius());
         List<String> stringStatuses = body.getStatuses().stream().map(MeetStatus::getValue).collect(Collectors.toList());
-        Set<UUID> foundMeetIds = meetRepository.searchMeet(stringStatuses,
-                body.getCategories(),
-                border.getFirst().getFirst(),
-                border.getSecond().getFirst(),
-                border.getFirst().getSecond(),
-                border.getSecond().getSecond(),
-                body.getDateFrom(),
-                body.getDateTo()
-        );
+        Set<UUID> foundMeetIds = new HashSet<>();
+        if (body.isNotFull()) {
+            if (body.getAdultFilter() == IsAdultFilter.ALL) {
+                foundMeetIds = meetRepository.searchAllMeetsNotFull(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+            }
+            if (body.getAdultFilter() == IsAdultFilter.ADULT_ONLY) {
+                foundMeetIds = meetRepository.searchAllMeetsAdultsNotFull(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+            }
+            if (body.getAdultFilter() == IsAdultFilter.UNDERAGE_ONLY) {
+                foundMeetIds = meetRepository.searchAllUnderageNotFull(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+            }
+        } else {
+            if (body.getAdultFilter() == IsAdultFilter.ALL) {
+                foundMeetIds = meetRepository.searchAllMeets(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+            }
+            if (body.getAdultFilter() == IsAdultFilter.ADULT_ONLY) {
+                foundMeetIds = meetRepository.searchAllMeetsAdults(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+            }
+            if (body.getAdultFilter() == IsAdultFilter.UNDERAGE_ONLY) {
+                foundMeetIds = meetRepository.searchAllUnderage(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+            }
+        }
         Set<Location> foundLocations = locationCacheService.search(
                 border.getFirst().getFirst(),
                 border.getSecond().getFirst(),
@@ -397,4 +439,12 @@ public class MeetService {
         return locationCacheService.getLocationById(id);
     }
 
+    public Meet updateIcon(UUID id, UpdateIconBody body) {
+        Meet meet = findById(id);
+        if (meet.getIconUpdateType() != IconUpdateType.BASE) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet not support base icons");
+        }
+        meet.setIcon(body.getIcon());
+        return updateInCacheAndReturn(meet);
+    }
 }

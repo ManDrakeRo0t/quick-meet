@@ -9,11 +9,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bogatov.quickmeet.constant.RouteConstants;
 import ru.bogatov.quickmeet.entity.Location;
+import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.model.request.CreateBannerBody;
 import ru.bogatov.quickmeet.model.request.CreateLocationBody;
 import ru.bogatov.quickmeet.model.request.UpdateLocationBody;
 import ru.bogatov.quickmeet.service.meet.LocationService;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -32,6 +34,12 @@ public class LocationController {
     @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
     public ResponseEntity<Location> updateLocation(@PathVariable UUID id, @RequestBody UpdateLocationBody body) {
         return ResponseEntity.ok(locationService.updateLocation(id, body));
+    }
+
+    @GetMapping("/{id}/meets")
+    @PreAuthorize("hasAnyAuthority('USER')")
+    public ResponseEntity<Set<Meet>> getLocationMeets(@PathVariable UUID id) {
+        return ResponseEntity.ok(locationService.findMeetsUnderLocation(id));
     }
 
     @PreAuthorize("@customSecurityRules.isLocationOwnerRequest(#id) || hasAnyAuthority('ADMIN')")

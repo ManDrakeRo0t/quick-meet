@@ -8,10 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.bogatov.quickmeet.constant.RouteConstants;
 import ru.bogatov.quickmeet.entity.Meet;
-import ru.bogatov.quickmeet.model.request.MeetCreationBody;
-import ru.bogatov.quickmeet.model.request.MeetUpdateBody;
-import ru.bogatov.quickmeet.model.request.MeetUpdateStatusBody;
-import ru.bogatov.quickmeet.model.request.SearchMeetBody;
+import ru.bogatov.quickmeet.model.request.*;
 import ru.bogatov.quickmeet.model.response.MeetModificationResponse;
 import ru.bogatov.quickmeet.model.response.MeetSearchResponse;
 import ru.bogatov.quickmeet.service.meet.MeetService;
@@ -55,6 +52,24 @@ public class MeetController {
     @PostMapping(path = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Meet> updateMeetAvatar(@PathVariable UUID id, @RequestPart("file") MultipartFile file) {
         return ResponseEntity.ok(meetService.updateMeetAvatar(id, file));
+    }
+
+    @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @PostMapping(path = "/{id}/icon", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Meet> updateMeetIcon(@PathVariable UUID id, @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(meetService.updateMeetIconAvatar(id, file));
+    }
+
+    @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @DeleteMapping(path = "/{id}/icon")
+    public ResponseEntity<Meet> deleteMeetIcon(@PathVariable UUID id) {
+        return ResponseEntity.ok(meetService.deleteMeetIconAvatar(id));
+    }
+
+    @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @PatchMapping("/{id}/icon")
+    public ResponseEntity<Meet> updateIcon(@PathVariable UUID id, @RequestBody UpdateIconBody body) {
+        return ResponseEntity.ok(meetService.updateIcon(id, body));
     }
 
     @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")

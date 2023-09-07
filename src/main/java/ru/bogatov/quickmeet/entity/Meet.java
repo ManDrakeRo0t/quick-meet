@@ -97,14 +97,14 @@ public class Meet implements Serializable {
     @OneToOne(fetch = FetchType.EAGER)
     private File avatar;
 
+    @Column(name = "is_full")
+    private boolean isFull;
+
     @OneToOne(fetch = FetchType.EAGER)
     private File iconAvatar;
 
     @Column(name = "required_rank")
     private double requiredRank;
-
-    @Column(name = "is_adults")
-    private boolean isForAdults;
 
     @Column(name = "is_owned_attend")
     private boolean isOwnerAttend;

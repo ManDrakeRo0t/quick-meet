@@ -2,6 +2,7 @@ package ru.bogatov.quickmeet.model.request;
 
 import com.sun.istack.NotNull;
 import lombok.Data;
+import ru.bogatov.quickmeet.model.enums.IsAdultFilter;
 import ru.bogatov.quickmeet.model.enums.MeetStatus;
 
 import java.time.LocalDateTime;
@@ -28,5 +29,5 @@ public class SearchMeetBody {
     @NotNull
     private boolean notFull;
     @NotNull
-    private boolean isForAdult;
+    private IsAdultFilter adultFilter;
 }

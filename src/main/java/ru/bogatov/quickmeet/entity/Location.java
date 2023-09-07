@@ -31,7 +31,7 @@ public class Location implements Serializable {
     private List<Banner> banners;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "location", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "location", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     private Set<Meet> meets;
 
     @Column(name = "name", length = 60)

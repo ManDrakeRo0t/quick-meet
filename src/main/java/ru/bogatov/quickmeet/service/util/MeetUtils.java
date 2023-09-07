@@ -52,7 +52,7 @@ public class MeetUtils {
         if (user.getAccountRank() < meet.getRequiredRank()) {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "Required rank is " + meet.getRequiredRank());
         }
-        if (ChronoUnit.YEARS.between(Instant.ofEpochMilli(user.getBirthDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate(), LocalDate.now()) < 18) {
+        if (meet.isAdultsOnly() && ChronoUnit.YEARS.between(Instant.ofEpochMilli(user.getBirthDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate(), LocalDate.now()) < 18) {
             throw ErrorUtils.buildException(ApplicationError.COMMON_MEET_ERROR, "Guest is not adult");
         }
     }
@@ -69,9 +69,15 @@ public class MeetUtils {
         }
         meet.getGuests().add(guest);
         meet.setCurrentPeople(meet.getCurrentPeople() + 1);
+        if (meet.getCurrentPeople() == meet.getMaxPeople()) {
+            meet.setFull(true);
+        }
     }
 
     public static void validateMeetCreation(MeetCreationBody body) {
+        if (body.getUserAmount() < 2) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "User amount should be > 1");
+        }
         if (body.getTime().isBefore(LocalDateTime.now())) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet start date in past");
         }

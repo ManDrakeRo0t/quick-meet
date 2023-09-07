@@ -7,10 +7,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import ru.bogatov.quickmeet.entity.Banner;
-import ru.bogatov.quickmeet.entity.BillingAccount;
-import ru.bogatov.quickmeet.entity.Location;
-import ru.bogatov.quickmeet.entity.User;
+import ru.bogatov.quickmeet.entity.*;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
@@ -124,9 +121,12 @@ public class LocationService {
         }
         return saveAndUpdateInCache(location);
     }
-    @Transactional
+
     public Void deleteLocation(UUID id, UUID userId) {
         Location location = locationCacheService.getLocationById(id);
+        if (location.isHidden()) {
+            throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Location already deleted");
+        }
         location.setHidden(true);
 
         BillingAccount billingAccount = billingAccountService.getCustomerBillingAccount(userId);
@@ -253,6 +253,10 @@ public class LocationService {
         bannerRepository.save(banner);
         deleteFromCache(locationId);
         return locationCacheService.getLocationById(locationId);
+    }
+
+    public Set<Meet> findMeetsUnderLocation(UUID locationId) {
+        return meetService.findMeetsByLocationId(locationId);
     }
 
 }
