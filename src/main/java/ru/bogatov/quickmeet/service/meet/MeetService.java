@@ -173,7 +173,7 @@ public class MeetService {
     public Meet updateMeetIconAvatar(UUID meetId, MultipartFile file) {
         Meet meet = findById(meetId);
         if (meet.getIconUpdateType() != IconUpdateType.CUSTOM) {
-            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet not support custom icons")
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet not support custom icons");
         }
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
         if (meet.getIcon() != null) {
