@@ -31,4 +31,7 @@ public class VerificationRecord {
 
     @Column(name = "actual_to")
     private LocalDateTime actualTo;
+
+    @Column(name = "retry_after")
+    private LocalDateTime retryAfter;
 }

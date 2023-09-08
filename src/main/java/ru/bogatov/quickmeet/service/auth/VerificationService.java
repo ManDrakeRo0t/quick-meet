@@ -33,6 +33,7 @@ public class VerificationService {
     private final NotificationEventSenderService senderService;
     private final UserRepository userRepository;
     private final CacheManager cacheManager;
+    private final int RETRY_TIMEOUT = 60;
 
     public VerificationService(PhoneVerificationRecordRepository phoneVerificationRecordRepository, NotificationEventSenderService senderService, UserRepository userRepository, CacheManager cacheManager) {
         this.verificationRecordRepository = phoneVerificationRecordRepository;
@@ -167,14 +168,19 @@ public class VerificationService {
             if (Boolean.TRUE.equals(record.getIsVerified()) && record.getActualTo() != null && LocalDateTime.now().isBefore(record.getActualTo())) {
                 throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Record already verified");
             }
+            if (LocalDateTime.now().isBefore(record.getRetryAfter())) {
+                throw ErrorUtils.buildException(ApplicationError.REQUEST_PARAMETERS_ERROR, "Retry available after : " + record.getRetryAfter());
+            }
         } else {
             record = new VerificationRecord();
             record.setIsVerified(false);
             record.setType(type);
             record.setSource(source);
+            record.setRetryAfter(LocalDateTime.now().plusSeconds(RETRY_TIMEOUT));
         }
         String code = generateCode();
         record.setActivationCode(code);
+        record.setRetryAfter(LocalDateTime.now().plusSeconds(RETRY_TIMEOUT));
         if (record.getActualTo() != null) {
             record.setActualTo(null);
             record.setIsVerified(false);

@@ -176,7 +176,7 @@ public class MeetService {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet not support custom icons");
         }
         MeetUtils.checkStatusAndThrow(meet, MeetStatus.PLANNED);
-        if (meet.getIcon() != null) {
+        if (meet.getIconAvatar() != null) {
             fileService.deleteFile(meet.getIconAvatar().getFileName());
             meet.setIconAvatar(fileService.updateFile(meet.getIconAvatar().getId(), file));
         } else {
@@ -441,7 +441,7 @@ public class MeetService {
 
     public Meet updateIcon(UUID id, UpdateIconBody body) {
         Meet meet = findById(id);
-        if (meet.getIconUpdateType() != IconUpdateType.BASE) {
+        if (meet.getIconUpdateType() == IconUpdateType.NONE) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, "Meet not support base icons");
         }
         meet.setIcon(body.getIcon());
