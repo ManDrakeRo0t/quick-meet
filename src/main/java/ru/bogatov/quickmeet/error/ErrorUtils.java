@@ -13,6 +13,7 @@ public class ErrorUtils {
         return ApplicationException.builder()
                 .code(error.getCode())
                 .message(error.getMessage())
+                .defaultMessage(error.getMessage())
                 .status(error.getStatus())
                 .build();
     }
@@ -21,6 +22,7 @@ public class ErrorUtils {
         return ApplicationException.builder()
                 .code(error.getCode())
                 .message(message)
+                .defaultMessage(error.getMessage())
                 .status(error.getStatus())
                 .build();
     }
@@ -29,6 +31,7 @@ public class ErrorUtils {
         ApplicationException applicationException = ApplicationException.builder()
                 .code(error.getCode())
                 .message(message)
+                .defaultMessage(initial.getMessage())
                 .status(error.getStatus())
                 .build();
         applicationException.setStackTrace(initial.getStackTrace());
@@ -39,7 +42,7 @@ public class ErrorUtils {
         ExceptionResponse response = ExceptionResponse.builder()
                 .code(ex.getCode())
                 .message(ex.getMessage())
-                .defaultMessage(ex.getLocalizedMessage()).build();
+                .defaultMessage(ex.getDefaultMessage()).build();
         if (isStackTraceEnabled) {
             response.setError(ex.getStackTrace());
             ex.printStackTrace();
@@ -51,7 +54,7 @@ public class ErrorUtils {
         ExceptionResponse response = ExceptionResponse.builder()
                 .code(ApplicationError.COMMON_ERROR.getCode())
                 .message(ex.getMessage())
-                .defaultMessage(ex.getLocalizedMessage()).build();
+                .defaultMessage(ApplicationError.COMMON_ERROR.getMessage()).build();
         if (isStackTraceEnabled) {
             response.setError(ex.getStackTrace());
             ex.printStackTrace();

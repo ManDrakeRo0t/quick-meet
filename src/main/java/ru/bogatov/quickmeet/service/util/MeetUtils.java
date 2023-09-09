@@ -89,11 +89,19 @@ public class MeetUtils {
         }
     }
 
-    public static void validateOwnerClassAndMeetPeriodForCreation(BillingAccount billingAccount, MeetCreationBody body, User owner, Set<Meet> existingMeets, MeetValidationRuleProperties properties, AccountClassProperties accountProperties) {
+    public static void validateOwnerClassAndMeetPeriodForCreation(BillingAccount billingAccount,
+                                                                  MeetCreationBody body,
+                                                                  User owner,
+                                                                  Set<Meet> existingMeets,
+                                                                  MeetValidationRuleProperties properties,
+                                                                  AccountClassProperties accountProperties) {
         if (owner.getAccountRank() < properties.getRequiredRankForMeetCreation()) {
             throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Owner rank less required %f", properties.getRequiredRankForMeetCreation()));
         }
-
+        LocalDateTime createBefore = LocalDateTime.now().plusDays(accountProperties.createRange);
+        if (body.getTime().isAfter(createBefore)) {
+            throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR, String.format("Meet can created before %s", createBefore));
+        }
         int allowedCapacity = accountProperties.getMaxCapacity();
 
         if (body.getUserAmount() > allowedCapacity && !body.isSkipRules()) {

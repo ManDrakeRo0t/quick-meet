@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 @Data
 public class ApplicationException extends RuntimeException {
     public String message;
+    public String defaultMessage;
     public HttpStatus status;
     public String code;
 }

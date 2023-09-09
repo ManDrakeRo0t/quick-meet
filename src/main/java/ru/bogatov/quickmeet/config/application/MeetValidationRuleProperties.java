@@ -25,6 +25,8 @@ public class MeetValidationRuleProperties {
     public boolean premiumHighlightMeet;
     @Value(value = "${application.meet-validation.premium-account.icon-update}")
     public String premiumIconType;
+    @Value(value = "${application.meet-validation.premium-account.meet-create-range}")
+    public int premiumCreateRange;
 
     @Value(value = "${application.meet-validation.base-account.meet-limit-per-day}")
     public int baseLimit;
@@ -36,6 +38,8 @@ public class MeetValidationRuleProperties {
     public boolean baseHighlightMeet;
     @Value(value = "${application.meet-validation.base-account.icon-update}")
     public String baseIconType;
+    @Value(value = "${application.meet-validation.base-account.meet-create-range}")
+    public int baseCreateRange;
 
     @Value(value = "${application.meet-validation.vip-account.meet-limit-per-day}")
     public int vipLimit;
@@ -47,6 +51,8 @@ public class MeetValidationRuleProperties {
     public boolean vipHighlightMeet;
     @Value(value = "${application.meet-validation.vip-account.icon-update}")
     public String vipIconType;
+    @Value(value = "${application.meet-validation.vip-account.meet-create-range}")
+    public int vipCreateRange;
 
     @Value(value = "${application.meet-validation.business-account.meet-limit-per-day}")
     public int businessLimit;
@@ -58,4 +64,6 @@ public class MeetValidationRuleProperties {
     public boolean businessHighlightMeet;
     @Value(value = "${application.meet-validation.business-account.icon-update}")
     public String businessIconType;
+    @Value(value = "${application.meet-validation.business-account.meet-create-range}")
+    public int businessCreateRange;
 }

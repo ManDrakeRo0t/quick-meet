@@ -11,6 +11,7 @@ public class AccountClassProperties {
     public int limit;
     public int maxCapacity;
     public int updateLimit;
+    public int createRange;
     public boolean highlightMeet;
     public IconUpdateType iconType;
 
@@ -23,6 +24,7 @@ public class AccountClassProperties {
                 accountClassProperties.setHighlightMeet(properties.baseHighlightMeet);
                 accountClassProperties.setUpdateLimit(properties.baseUpdateLimit);
                 accountClassProperties.setIconType(IconUpdateType.valueOf(properties.baseIconType));
+                accountClassProperties.setCreateRange(properties.baseCreateRange);
                 break;
             case PREMIUM:
                 accountClassProperties.setLimit(properties.premiumLimit);
@@ -30,6 +32,7 @@ public class AccountClassProperties {
                 accountClassProperties.setHighlightMeet(properties.premiumHighlightMeet);
                 accountClassProperties.setUpdateLimit(properties.premiumUpdateLimit);
                 accountClassProperties.setIconType(IconUpdateType.valueOf(properties.premiumIconType));
+                accountClassProperties.setCreateRange(properties.premiumCreateRange);
                 break;
             case VIP:
                 accountClassProperties.setLimit(properties.vipLimit);
@@ -37,6 +40,7 @@ public class AccountClassProperties {
                 accountClassProperties.setHighlightMeet(properties.vipHighlightMeet);
                 accountClassProperties.setUpdateLimit(properties.vipUpdateLimit);
                 accountClassProperties.setIconType(IconUpdateType.valueOf(properties.vipIconType));
+                accountClassProperties.setCreateRange(properties.vipCreateRange);
                 break;
             case BUSINESS:
                 accountClassProperties.setLimit(properties.businessLimit);
@@ -44,6 +48,7 @@ public class AccountClassProperties {
                 accountClassProperties.setHighlightMeet(properties.businessHighlightMeet);
                 accountClassProperties.setUpdateLimit(properties.businessUpdateLimit);
                 accountClassProperties.setIconType(IconUpdateType.valueOf(properties.businessIconType));
+                accountClassProperties.setCreateRange(properties.businessCreateRange);
         }
         return accountClassProperties;
     }

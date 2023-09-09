@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.entity.auth.UserForAuth;
 
+import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -24,6 +25,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Modifying
     @Query(value = "update usr set refresh = :refresh_token where id = :id", nativeQuery = true)
     void updateRefreshToken(@Param("id") UUID id, @Param("refresh_token") String refresh);
+
+    @Modifying
+    @Query(value = "update usr set account_rank = :rank, rank_update_date = :lastUpdate where id = :id", nativeQuery = true)
+    void updateRankInfo(@Param("id") UUID id, @Param("rank") float rank, @Param("lastUpdate") Date date);
 
     @Modifying
     @Query(value = "update usr set is_email_confirmed = :isConfirmed where email = :mail", nativeQuery = true)

@@ -16,7 +16,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @Setter
-@Table(name ="usr", indexes = @Index(name = "phone_number_index", columnList = "phone_number", unique = true))
+@Table(name ="usr")
 public class User implements UserForAuth, Serializable {
 
     private static final long serialVersionUID = 678754657547L;
@@ -47,7 +47,7 @@ public class User implements UserForAuth, Serializable {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    @Column(name = "phone_number", length = 16)
+    @Column(name = "phone_number", length = 16, unique = true)
     private String phoneNumber;
 
     @Column(name = "description")
@@ -88,5 +88,9 @@ public class User implements UserForAuth, Serializable {
 
     @Column(name = "birth_date")
     private Date birthDate;
+
+    @JsonIgnore
+    @Column(name = "rank_update_date")
+    private Date lastRankUpdateDate;
 
 }

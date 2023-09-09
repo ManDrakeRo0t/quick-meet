@@ -193,7 +193,10 @@ public class UserService {
 
     public User createUser(RegistrationBody body) {
         if (userRepository.isUserExistWithPhoneNumber(body.getPhoneNumber()).isPresent()) {
-            throw ErrorUtils.buildException(ApplicationError.USER_EXISTS);
+            throw ErrorUtils.buildException(ApplicationError.USER_EXISTS, "Phone number already registered");
+        }
+        if (userRepository.isUserExistWithMail(body.getEmail()).isPresent()) {
+            throw ErrorUtils.buildException(ApplicationError.USER_EXISTS, "Email already registered");
         }
         if (!verificationService.isVerified(body.getPhoneNumber())) {
             throw ErrorUtils.buildException(ApplicationError.BUSINESS_LOGIC_ERROR, "Phone not verified or verification expired");
@@ -207,6 +210,7 @@ public class UserService {
         user.setSecondName(body.getSecondName());
         user.setLastName(body.getLastName());
         user.setAccountRank(5f);
+        user.setLastRankUpdateDate(null);
         user.setMissSeries(0);
         user.setAttendSeries(0);
         user.setPhoneNumber(body.getPhoneNumber());

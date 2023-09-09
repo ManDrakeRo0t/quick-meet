@@ -87,24 +87,28 @@ application:
       update-limit : 1
       meet-highlight : true
       icon-update : BASE
+      meet-create-range : 7
     base-account :
       meet-limit-per-day: 1
       meet-max-capacity: 10
       update-limit : 1
       meet-highlight : false
       icon-update : NONE
+      meet-create-range : 3
     vip-account:
       meet-limit-per-day: 5
       meet-max-capacity: 1000
       update-limit: 1
       meet-highlight : true
       icon-update : CUSTOM
+      meet-create-range : 30
     business-account:
       meet-limit-per-day: 10000
       meet-max-capacity: 10000
       update-limit: 1
       meet-highlight : true
       icon-update : CUSTOM
+      meet-create-range : 30
   verification:
     test-code : true
     phone : false
