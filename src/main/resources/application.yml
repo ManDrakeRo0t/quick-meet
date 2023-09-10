@@ -35,6 +35,8 @@ spring:
 
   cache:
     type: redis
+    redis:
+      time-to-live: 300000 # 300 sec
 
   redis:
     host: localhost

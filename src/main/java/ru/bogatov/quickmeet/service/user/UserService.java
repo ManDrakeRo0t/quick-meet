@@ -22,10 +22,16 @@ import ru.bogatov.quickmeet.model.request.RegistrationBody;
 import ru.bogatov.quickmeet.service.auth.VerificationService;
 import ru.bogatov.quickmeet.service.file.FileService;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static ru.bogatov.quickmeet.constant.CacheConstants.USERS_CACHE;
-import static ru.bogatov.quickmeet.constant.UserConstants.USER_LIST;
+import static ru.bogatov.quickmeet.constant.UserConstants.*;
 
 @Service
 @Slf4j
@@ -84,17 +90,20 @@ public class UserService {
         }
         return updateUser(user);
     }
+    @Transactional
     @Cacheable(value = USERS_CACHE, key = "#id")
     public User findUserByID(UUID id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
+        return processUserRating(
+                userRepository.findById(id)
+                        .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND))
+        );
     }
 
+    @Transactional
     public List<User> findUsersByIdsList(Map<String, Set<UUID>> body) {
         List<User> result = new ArrayList<>();
         Set<UUID> requestList = body.get(USER_LIST);
         Set<UUID> notFoundInCache = new HashSet<>();
-        //todo check for NPE where cache empty
         requestList.forEach(uuid -> {
             User user = cacheManager.getCache(USERS_CACHE).get(uuid, User.class);
             if (user != null) {
@@ -106,7 +115,7 @@ public class UserService {
         List<User> userFormDb = userRepository.findAllById(notFoundInCache);
         userFormDb.forEach(user -> cacheManager.getCache(USERS_CACHE).put(user.getId(), user));
         result.addAll(userFormDb);
-        return result;
+        return result.stream().map(this::processUserRating).collect(Collectors.toList());
     }
     public User updateUser(User user) {
         User updatedUser = userRepository.save(user);
@@ -119,6 +128,7 @@ public class UserService {
         cacheManager.getCache(USERS_CACHE).evict(id);
     }
 
+    @Transactional
     public User findActiveAndAvailableUserByPhoneAndPassword(LoginForm loginForm) {
         User user = userRepository.findByPhoneNumber(loginForm.getPhoneNumber())
                 .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
@@ -126,9 +136,10 @@ public class UserService {
             throw ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND);
         }
         checkUserStatus(user);
-        return user;
+        return processUserRating(user);
     }
 
+    @Transactional
     public User findActiveAndAvailableUserByPhoneAndCheckVerification(String phoneNumber) {
         if (!verificationService.isVerified(phoneNumber)) {
             throw ErrorUtils.buildException(ApplicationError.AUTHENTICATION_ERROR, "Verification not found");
@@ -137,7 +148,7 @@ public class UserService {
                 .orElseThrow(() -> ErrorUtils.buildException(ApplicationError.USER_NOT_FOUND));
         checkUserStatus(user);
         verificationService.deleteRecord(phoneNumber);
-        return user;
+        return processUserRating(user);
     }
     @Transactional
     public User findUserAndResetPassword(LoginForm loginForm) {
@@ -225,6 +236,34 @@ public class UserService {
         User createdUser = userRepository.save(user);
         cacheManager.getCache(USERS_CACHE).put(createdUser.getId(), createdUser);
         return createdUser;
+    }
+
+    public User processUserRating(User user) {
+        Date lastUpdate = user.getLastRankUpdateDate();
+        float currentRank = user.getAccountRank();
+        Date today = new Date();
+        if (currentRank < MIN_AUTO_UPDATE_RANK) {
+            if (lastUpdate == null) {
+                user.setLastRankUpdateDate(today);
+                user.setAccountRank(currentRank + RANK_UPDATE_DELTA);
+                userRepository.updateRankInfo(user.getId(), user.getAccountRank(), user.getLastRankUpdateDate());
+            } else {
+                long diff = ChronoUnit.DAYS.between(Instant.ofEpochMilli(lastUpdate.getTime()).atZone(ZoneId.systemDefault()).toLocalDate(), LocalDate.now());
+                if (diff >= 1) {
+                    currentRank += RANK_UPDATE_DELTA * diff;
+                    if (currentRank > MIN_AUTO_UPDATE_RANK) {
+                        currentRank = MIN_AUTO_UPDATE_RANK;
+                        lastUpdate = null;
+                    } else {
+                        lastUpdate = today;
+                    }
+                    user.setLastRankUpdateDate(lastUpdate);
+                    user.setAccountRank(currentRank);
+                    userRepository.updateRankInfo(user.getId(), user.getAccountRank(), user.getLastRankUpdateDate());
+                }
+            }
+        }
+        return user;
     }
 
     public boolean isUserExists(String phone) {
