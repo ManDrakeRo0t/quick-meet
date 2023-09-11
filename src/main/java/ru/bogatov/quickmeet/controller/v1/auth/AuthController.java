@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.bogatov.quickmeet.constant.RouteConstants;
-import ru.bogatov.quickmeet.model.request.LoginAfterVerificationForm;
 import ru.bogatov.quickmeet.model.request.LoginForm;
 import ru.bogatov.quickmeet.model.request.RegistrationBody;
 import ru.bogatov.quickmeet.model.response.AuthenticationResponse;

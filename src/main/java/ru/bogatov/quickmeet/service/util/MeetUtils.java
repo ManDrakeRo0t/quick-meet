@@ -157,11 +157,11 @@ public class MeetUtils {
     public static void validateCrossTime(LocalDateTime startTime, LocalDateTime endTime, Set<Meet> todayMeets) {
         todayMeets.forEach(existingMeet -> {
             LocalDateTime existingMeetEnd = existingMeet.getDateTime().plusHours(existingMeet.getExpectedDuration());
-            if (existingMeet.getDateTime().isAfter(startTime) && existingMeet.getDateTime().isBefore(endTime)) {
+            if (!startTime.isBefore(existingMeet.getDateTime()) && startTime.isBefore(existingMeetEnd)) {
                 throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
                         String.format("Meet time crosses with another meet start time : %s", existingMeet.getName()));
             }
-            if (existingMeetEnd.isAfter(startTime) && existingMeetEnd.isBefore(endTime)) {
+            if (!endTime.isBefore(existingMeet.getDateTime()) && endTime.isBefore(existingMeetEnd)) {
                 throw ErrorUtils.buildException(ApplicationError.MEET_VALIDATION_ERROR,
                         String.format("Meet time crosses with another meet end time : %s", existingMeet.getName()));
             }

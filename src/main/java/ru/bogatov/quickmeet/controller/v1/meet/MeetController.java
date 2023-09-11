@@ -92,7 +92,7 @@ public class MeetController {
     public ResponseEntity<MeetModificationResponse> leaveMeet(@PathVariable UUID id, @PathVariable UUID userId) {
         return ResponseEntity.ok(meetService.leaveFromMeet(id, userId));
     }
-    @PreAuthorize("@customSecurityRules.isMeetOwnerRequest(#id) || hasAnyAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('USER')")// todo check is user request
     @PatchMapping("/{id}/guest/{guestId}")
     public ResponseEntity<Void> updateGuestStatus(@PathVariable UUID id, @PathVariable UUID guestId, @RequestParam("attend") boolean isAttend) {
         return ResponseEntity.ok(meetService.updateGuest(id, guestId, isAttend));

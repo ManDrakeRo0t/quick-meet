@@ -14,6 +14,7 @@ public class MeetCreationBody implements MeetCommonData {
     String description;
     @NotNull
     UUID categoryId;
+
     String address;
     @NotNull
     //@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd.MM.yyyy'T'HH:mm:ss.SSSZ")

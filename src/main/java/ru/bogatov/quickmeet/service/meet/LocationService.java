@@ -64,7 +64,7 @@ public class LocationService {
         location.setName(body.getName());
         location.setHidden(false);
         location.setDescription(body.getDescription());
-
+        location.setAvailableTill(billingAccount.getBusinessEndTime());
         location.setOwner(owner);
 
         billingAccount.setLocationsAmount(billingAccount.getLocationsAmount() + 1);
@@ -143,31 +143,6 @@ public class LocationService {
 
         saveAndUpdateInCache(location);
         return null;
-    }
-
-    public Set<Location> findUserLocations(UUID userId) {
-        Set<UUID> locationIds = locationRepository.findAllByUserId(userId);
-        Set<Location> locations = new HashSet<>();
-        Set<UUID> notFoundInCache = new HashSet<>();
-        Cache locationCache = cacheManager.getCache(LOCATION_CACHE);
-        locationIds.forEach(id -> {
-            if (locationCache != null) {
-                Location fromCache = locationCache.get(id, Location.class);
-                if (fromCache != null) {
-                    locations.add(fromCache);
-                } else {
-                    notFoundInCache.add(id);
-                }
-            } else {
-                notFoundInCache.add(id);
-            }
-        });
-        List<Location> fromDb = locationRepository.findAllById(notFoundInCache);
-        fromDb.forEach(location -> {
-            locationCache.put(location.getId(), location);
-            locations.add(location);
-        });
-        return locations;
     }
 
     public Location createBanner(UUID locationId, CreateBannerBody body) {

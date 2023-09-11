@@ -10,6 +10,7 @@ import ru.bogatov.quickmeet.entity.Location;
 import ru.bogatov.quickmeet.entity.Meet;
 import ru.bogatov.quickmeet.entity.User;
 import ru.bogatov.quickmeet.model.request.UserUpdateBody;
+import ru.bogatov.quickmeet.service.meet.LocationCacheService;
 import ru.bogatov.quickmeet.service.meet.LocationService;
 import ru.bogatov.quickmeet.service.meet.MeetService;
 import ru.bogatov.quickmeet.service.user.UserService;
@@ -23,11 +24,13 @@ public class UserController {
     private final UserService userService;
     private final MeetService meetService;
     private final LocationService locationService;
+    private final LocationCacheService locationCacheService;
 
-    public UserController(UserService userService, MeetService meetService, LocationService locationService) {
+    public UserController(UserService userService, MeetService meetService, LocationService locationService, LocationCacheService locationCacheService) {
         this.userService = userService;
         this.meetService = meetService;
         this.locationService = locationService;
+        this.locationCacheService = locationCacheService;
     }
 
     @GetMapping("/{id}")
@@ -73,7 +76,7 @@ public class UserController {
     @PreAuthorize("@customSecurityRules.isUserRequest(#id) || hasAnyAuthority('ADMIN')")
     @GetMapping("/{id}/locations")
     public ResponseEntity<Set<Location>> getUserLocations(@PathVariable UUID id) {
-        return ResponseEntity.ok(locationService.findUserLocations(id));
+        return ResponseEntity.ok(locationCacheService.findUserLocations(id));
     }
 
 }

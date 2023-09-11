@@ -4,14 +4,18 @@ import lombok.AllArgsConstructor;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.bogatov.quickmeet.entity.BillingAccount;
+import ru.bogatov.quickmeet.entity.Location;
 import ru.bogatov.quickmeet.error.ErrorUtils;
 import ru.bogatov.quickmeet.model.enums.AccountClass;
 import ru.bogatov.quickmeet.model.enums.ApplicationError;
 import ru.bogatov.quickmeet.model.request.PaymentCreationBody;
 import ru.bogatov.quickmeet.repository.userdata.BillingAccountRepository;
+import ru.bogatov.quickmeet.service.meet.LocationCacheService;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 import static ru.bogatov.quickmeet.constant.CacheConstants.BILLING_ACCOUNT_CACHE;
@@ -23,8 +27,11 @@ public class BillingAccountService {
     private final BillingAccountRepository billingAccountRepository;
 
     private final CacheManager cacheManager;
+
+    private final LocationCacheService locationCacheService;
     private final int MAX_LOCATION_AMOUNT = 5;
 
+    @Transactional
     public BillingAccount createPayment(PaymentCreationBody body) {
 
         if (body.getType() == AccountClass.BASE) {
@@ -131,6 +138,11 @@ public class BillingAccountService {
         } else {
             account.setBusinessEndTime(now.plusMonths(period));
         }
+        Set<Location> userLocations = locationCacheService.findUserLocations(account.getUserId());
+        userLocations.forEach(location -> {
+            location.setAvailableTill(account.getBusinessEndTime());
+            locationCacheService.saveAndUpdateInCache(location);
+        });
         if (account.getVipEndTime() != null && account.getVipEndTime().isAfter(now)) {
             updateVipPeriod(account, period);
         } else if (account.getPremiumEndTime() != null && account.getPremiumEndTime().isAfter(now)){

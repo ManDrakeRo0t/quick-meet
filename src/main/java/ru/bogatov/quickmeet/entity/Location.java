@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -49,6 +50,9 @@ public class Location implements Serializable {
 
     @Column(name = "longevity")
     private double longevity;
+
+    @Column(name = "available_till")
+    private LocalDateTime availableTill;
 
     @Column(name = "latitude")
     private double latitude;
