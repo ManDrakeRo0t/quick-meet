@@ -258,40 +258,48 @@ public class MeetService {
         return updatedMeet;
     }
 
-    public MeetSearchResponse search(SearchMeetBody body) {
-        Pair<Pair<Double, Double>, Pair<Double, Double>> border =
-                MeetUtils.calculateBorder(body.getLatitude(), body.getLongevity(), body.getRadius());
+    public MeetSearchResponse search(DefaultMeetSearchBody body, double minLat, double maxLat, double minLon, double maxLog) {
         List<String> stringStatuses = body.getStatuses().stream().map(MeetStatus::getValue).collect(Collectors.toList());
         Set<UUID> foundMeetIds = new HashSet<>();
         if (body.isNotFull()) {
             if (body.getAdultFilter() == IsAdultFilter.ALL) {
-                foundMeetIds = meetRepository.searchAllMeetsNotFull(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+                foundMeetIds = meetRepository.searchAllMeetsNotFull(stringStatuses, body.getCategories(), minLat, maxLat, minLon, maxLog, body.getDateFrom(), body.getDateTo());
             }
             if (body.getAdultFilter() == IsAdultFilter.ADULT_ONLY) {
-                foundMeetIds = meetRepository.searchAllMeetsAdultsNotFull(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+                foundMeetIds = meetRepository.searchAllMeetsAdultsNotFull(stringStatuses, body.getCategories(), minLat, maxLat, minLon, maxLog, body.getDateFrom(), body.getDateTo());
             }
             if (body.getAdultFilter() == IsAdultFilter.UNDERAGE_ONLY) {
-                foundMeetIds = meetRepository.searchAllUnderageNotFull(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+                foundMeetIds = meetRepository.searchAllUnderageNotFull(stringStatuses, body.getCategories(), minLat, maxLat, minLon, maxLog, body.getDateFrom(), body.getDateTo());
             }
         } else {
             if (body.getAdultFilter() == IsAdultFilter.ALL) {
-                foundMeetIds = meetRepository.searchAllMeets(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+                foundMeetIds = meetRepository.searchAllMeets(stringStatuses, body.getCategories(), minLat, maxLat, minLon, maxLog, body.getDateFrom(), body.getDateTo());
             }
             if (body.getAdultFilter() == IsAdultFilter.ADULT_ONLY) {
-                foundMeetIds = meetRepository.searchAllMeetsAdults(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+                foundMeetIds = meetRepository.searchAllMeetsAdults(stringStatuses, body.getCategories(), minLat, maxLat, minLon, maxLog, body.getDateFrom(), body.getDateTo());
             }
             if (body.getAdultFilter() == IsAdultFilter.UNDERAGE_ONLY) {
-                foundMeetIds = meetRepository.searchAllUnderage(stringStatuses, body.getCategories(), border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond(), body.getDateFrom(), body.getDateTo());
+                foundMeetIds = meetRepository.searchAllUnderage(stringStatuses, body.getCategories(), minLat, maxLat, minLon, maxLog, body.getDateFrom(), body.getDateTo());
             }
         }
         Set<Location> foundLocations = locationCacheService.search(
-                border.getFirst().getFirst(),
-                border.getSecond().getFirst(),
-                border.getFirst().getSecond(),
-                border.getSecond().getSecond());
+                minLat,
+                maxLat,
+                minLon,
+                maxLog);
         return MeetSearchResponse.builder()
                 .meets(findMeetListByIds(foundMeetIds))
                 .locations(foundLocations).build();
+    }
+
+    public MeetSearchResponse searchWithRadius(SearchMeetBody body) {
+        Pair<Pair<Double, Double>, Pair<Double, Double>> border =
+                MeetUtils.calculateBorder(body.getLatitude(), body.getLongevity(), body.getRadius());
+        return search(body, border.getFirst().getFirst(), border.getSecond().getFirst(), border.getFirst().getSecond(), border.getSecond().getSecond());
+    }
+
+    public MeetSearchResponse searchWithCoords(SearchMeetBodyV2 body) {
+        return search(body, body.getBottomRight().getLatitude(), body.getTopLeft().getLatitude(), body.getTopLeft().getLongevity(), body.getBottomRight().getLongevity());
     }
 
 

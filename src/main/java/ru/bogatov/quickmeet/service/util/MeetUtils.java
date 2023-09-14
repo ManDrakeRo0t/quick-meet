@@ -211,11 +211,6 @@ public class MeetUtils {
     public static Pair<Pair<Double, Double>, Pair<Double, Double>> calculateBorder(double lat, double lon, double radius) {
         double EARTH_RADIUS = 6371210;
 
-//        double latRad = Math.toRadians(lat);
-//
-//        double delta_lat = radius / EARTH_RADIUS;
-//        double delta_lon = radius / (EARTH_RADIUS * Math.cos(latRad));
-
         double delta_lat = radius / (Math.PI / 180 * EARTH_RADIUS);
         double delta_lon = radius / (Math.PI / 180 * EARTH_RADIUS * Math.cos(Math.toRadians(lon)));
 

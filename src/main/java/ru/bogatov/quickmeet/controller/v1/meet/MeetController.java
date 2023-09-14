@@ -80,7 +80,7 @@ public class MeetController {
 
     @PostMapping("/search")
     public ResponseEntity<MeetSearchResponse> searchMeet(@RequestBody SearchMeetBody body) {
-        return ResponseEntity.ok(meetService.search(body));
+        return ResponseEntity.ok(meetService.searchWithRadius(body));
     }
     @PreAuthorize("@customSecurityRules.isUserRequest(#userId) || hasAnyAuthority('ADMIN')")
     @PostMapping("/{id}/join/{userId}")

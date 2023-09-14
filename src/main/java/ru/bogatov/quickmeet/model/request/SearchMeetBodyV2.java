@@ -11,17 +11,15 @@ import java.util.Set;
 import java.util.UUID;
 
 @Data
-public class SearchMeetBody implements DefaultMeetSearchBody{
+public class SearchMeetBodyV2 implements DefaultMeetSearchBody {
+    @NotNull
+    private Point topLeft;
+    @NotNull
+    private Point bottomRight;
     @NotNull
     private List<MeetStatus> statuses;
     @NotNull
     private Set<UUID> categories;
-    @NotNull
-    private double latitude;
-    @NotNull
-    private double longevity;
-    @NotNull
-    private double radius;
     @NotNull
     private LocalDateTime dateFrom;
     @NotNull

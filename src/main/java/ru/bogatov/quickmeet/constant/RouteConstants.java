@@ -2,6 +2,7 @@ package ru.bogatov.quickmeet.constant;
 
 public class RouteConstants {
     public static final String API_V1 = "/api/v1";
+    public static final String API_V2 = "/api/v2";
     public static final String AUTH = "/auth";
     public static final String CODE = "/code";
     public static final String USER_MANAGEMENT = "/user-management";
