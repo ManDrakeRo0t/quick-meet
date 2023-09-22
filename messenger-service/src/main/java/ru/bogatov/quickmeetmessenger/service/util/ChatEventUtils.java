@@ -23,4 +23,14 @@ public class ChatEventUtils {
                 .build();
     }
 
+    public static ChatEvent newReadChatEvent(UUID senderId, UUID meetId) {
+        Message message = new Message();
+        message.setDestinationId(meetId);
+        message.setSenderId(senderId);
+        return ChatEvent.builder()
+                .message(message)
+                .type(EventType.READ_CHAT)
+                .build();
+    }
+
 }

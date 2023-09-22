@@ -9,6 +9,7 @@ import java.util.UUID;
 @Builder
 public class ChatUpdateEvent {
     UUID userId;
+    UUID meetId;
     String field;
     String newValue;
     boolean isSystemUpdate;

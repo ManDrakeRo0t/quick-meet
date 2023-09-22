@@ -56,13 +56,13 @@ public class MeetEventSenderService {
         sendEvent(event);
     }
 
-    public void sendMeetCreatedEvent(UUID meetId) {
+    public void sendMeetCreatedEvent(UUID meetId, UUID userId) {
         MeetUpdateEvent event = MeetUpdateEvent.builder()
                 .type(MeetUpdateEventType.MEET_CREATED)
                 .field("")
                 .newValue("")
                 .isSystemUpdate(false)
-                .userId(null)
+                .userId(userId)
                 .meetId(meetId)
                 .build();
         sendEvent(event);

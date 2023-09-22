@@ -1,5 +1,6 @@
-package ru.bogatov.quickmeetmessenger.controller.v1;
+package ru.bogatov.quickmeetmessenger.controller.v2;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -16,23 +17,18 @@ import static ru.bogatov.quickmeetmessenger.constant.RouteConstant.*;
 
 @Controller
 @Slf4j
-public class ChatWsController {
+@AllArgsConstructor
+public class ChatWsControllerV2 {
 
     private final ChatService chatService;
 
-    public ChatWsController(ChatService chatService) {
-        this.chatService = chatService;
+    @MessageMapping(SEND_MESSAGE_V2)
+    public void sendMessage(@DestinationVariable("user_id") String userId, @Payload MessageEvent messageEvent) {
+        chatService.handleMessageEventFromUserTopic(UUID.fromString(userId), messageEvent);
     }
 
-    @MessageMapping(SEND_MESSAGE)
-    public void sendMessage(@DestinationVariable("chat_id") String chatId, @Payload MessageEvent messageEvent) {
-        chatService.handleMessageEventFromMeetTopic(UUID.fromString(chatId), messageEvent);
-    }
-
-    @SubscribeMapping(FETCH_MESSAGES)
-    public ChatEvent fetchMessages(@DestinationVariable("chat_id") String chatId) {
+    @SubscribeMapping(FETCH_MESSAGES_V2)
+    public ChatEvent fetchMessages(@DestinationVariable("user_id") String userId) {
         return null;
     }
-
-
 }

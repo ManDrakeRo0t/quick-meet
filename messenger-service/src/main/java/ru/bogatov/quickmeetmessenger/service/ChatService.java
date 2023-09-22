@@ -26,13 +26,15 @@ public class ChatService {
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
     private final CacheManager cacheManager;
+    public final MeetGuestRecordService meetGuestRecordService;
 
     @Value("${spring.cache.cache-names}")
     String CHAT_VIEWED_CACHE;
-    public ChatService(MessageService messageService, SimpMessagingTemplate messagingTemplate, CacheManager cacheManager) {
+    public ChatService(MessageService messageService, SimpMessagingTemplate messagingTemplate, CacheManager cacheManager, MeetGuestRecordService meetGuestRecordService) {
         this.messageService = messageService;
         this.messagingTemplate = messagingTemplate;
         this.cacheManager = cacheManager;
+        this.meetGuestRecordService = meetGuestRecordService;
     }
 
     public void sendMessage(UUID destinationId, UUID senderId, String content) {
@@ -41,6 +43,14 @@ public class ChatService {
                         saveMessage(destinationId, senderId, content)
                         )
         );
+    }
+
+    public void sendMessageToUserTopics(UUID destinationId, UUID senderId, String content) {
+        Set<UUID> userIds = meetGuestRecordService.getMeetUsers(destinationId);
+        Message message = saveMessage(destinationId, senderId, content);
+        userIds.forEach(userId -> messagingTemplate.convertAndSend(getFetchMessagesDestinationV2(userId),
+                ChatEventUtils.newMessageEvent(message)
+        ));
     }
 
     public Message saveMessage(UUID destinationId, UUID senderId, String content) {
@@ -53,6 +63,13 @@ public class ChatService {
         );
     }
 
+    public void sendChatReadEventToUserTopics(UUID destinationId, UUID senderId) {
+        Set<UUID> userIds = meetGuestRecordService.getMeetUsers(destinationId);
+        userIds.forEach(userId -> messagingTemplate.convertAndSend(getFetchMessagesDestinationV2(userId),
+                ChatEventUtils.newReadChatEvent(senderId, destinationId)
+        ));
+    }
+
     public void sendChatCoreEvent(UUID destinationId, ChatEvent event) {
         ChatViewedHistory history = getRecentlyViewedFromCache(destinationId);
         LocalDateTime now = LocalDateTime.now();
@@ -62,8 +79,12 @@ public class ChatService {
             saveRecentlyViewedInCache(destinationId, history.getRecords(), now);
         }
         saveMessage(destinationId, null, createCoreEventMessage(event));
-        messagingTemplate.convertAndSend(getFetchMessagesDestination(destinationId),
-                event);
+        Set<UUID> userIds = meetGuestRecordService.getMeetUsers(destinationId);
+        userIds.forEach(userId -> messagingTemplate.convertAndSend(getFetchMessagesDestinationV2(userId),
+                event
+        ));
+//        messagingTemplate.convertAndSend(getFetchMessagesDestination(destinationId),
+//                event);
     }
 
     public Map<String, Boolean> getChatsNotifications(GetChatContentBody body) {
@@ -119,7 +140,7 @@ public class ChatService {
                 .build();
     }
 
-    public void handleMessageEvent(UUID chatId, MessageEvent event) {
+    public void handleMessageEventFromMeetTopic(UUID chatId, MessageEvent event) {
         ChatViewedHistory chatHistory = getRecentlyViewedFromCache(chatId);
         LocalDateTime lastSendTime = null;
         LocalDateTime lastReadTime = null;
@@ -140,6 +161,29 @@ public class ChatService {
                 .readTime(lastReadTime)
                 .build());
         saveRecentlyViewedInCache(chatId, recentlyViewed, lastSendTime);
+    }
+
+    public void handleMessageEventFromUserTopic(UUID userId, MessageEvent event) {
+        ChatViewedHistory chatHistory = getRecentlyViewedFromCache(event.getDestinationId());
+        LocalDateTime lastSendTime = null;
+        LocalDateTime lastReadTime = null;
+        Set<ChatViewedRecord> recentlyViewed = new HashSet<>();
+        if (chatHistory != null) {
+            lastSendTime = chatHistory.getLastMessageSendTime() == null ? null : chatHistory.getLastMessageSendTime();
+            recentlyViewed = chatHistory.getRecords() == null ? new HashSet<>() : chatHistory.getRecords();
+        }
+        if (event.getContent() != null && !event.getContent().isEmpty()) {
+            lastSendTime = lastReadTime = LocalDateTime.now();
+            sendMessageToUserTopics(event.getDestinationId(), event.getSenderId(), event.getContent());
+        } else if (event.isChatViewed()) {
+            lastReadTime = LocalDateTime.now();
+            sendChatReadEventToUserTopics(event.getDestinationId(), event.getSenderId());
+        }
+        replaceOrAdd(recentlyViewed, ChatViewedRecord.builder()
+                .userId(event.getSenderId())
+                .readTime(lastReadTime)
+                .build());
+        saveRecentlyViewedInCache(event.getDestinationId(), recentlyViewed, lastSendTime);
     }
 
     public void saveRecentlyViewedInCache(UUID chatId, Set<ChatViewedRecord> recentlyViewed, LocalDateTime time) {
@@ -168,12 +212,16 @@ public class ChatService {
         return TOPIC_DESTINATION_PREFIX + FETCH_MESSAGES.replace(CHAT_ID, chatId.toString());
     }
 
+    public static String getFetchMessagesDestinationV2(UUID userId) {
+        return TOPIC_DESTINATION_PREFIX + FETCH_MESSAGES_V2.replace(USER_ID, userId.toString());
+    }
+
     public static String createCoreEventMessage(ChatEvent event) {
         return String.format("%s|%s|%s|%s",
                 event.getType(),
                 event.getEvent().getField(),
                 event.getEvent().getNewValue(),
-                event.getEvent().isSystemUpdate()
+                event.getEvent().isSystemUpdate() //todo save meet id
         );
     }
 

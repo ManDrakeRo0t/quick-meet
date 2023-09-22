@@ -118,7 +118,7 @@ public class MeetService {
         meet.setCurrentPeople(1);
         evictOwnerListCache(body.getOwnerId());
         Meet created = updateInCacheAndReturn(meet);
-        senderService.sendMeetCreatedEvent(created.getId());
+        senderService.sendMeetCreatedEvent(created.getId(), created.getOwner().getId());
         return MeetModificationResponse.builder()
                 .meet(created)
                 .token(jwtProvider.generateTokenForUser(owner))

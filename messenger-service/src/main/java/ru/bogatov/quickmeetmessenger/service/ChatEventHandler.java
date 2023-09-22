@@ -14,9 +14,11 @@ public class ChatEventHandler {
 
     ObjectMapper mapper = new ObjectMapper();
     private final ChatService chatService;
+    private final MeetGuestRecordService meetGuestRecordService;
 
-    public ChatEventHandler(ChatService chatService) {
+    public ChatEventHandler(ChatService chatService, MeetGuestRecordService meetGuestRecordService) {
         this.chatService = chatService;
+        this.meetGuestRecordService = meetGuestRecordService;
     }
 
     public void handleCoreChatEvent(String message) {
@@ -30,11 +32,21 @@ public class ChatEventHandler {
                                     .isSystemUpdate(payload.isSystemUpdate())
                                     .newValue(payload.getNewValue())
                                     .userId(payload.getUserId())
+                                    .meetId(payload.getMeetId())
                                     .build()
                     )
                     .type(payload.getType())
                     .build();
+
+            switch (event.getType()) {
+                case USER_LEFT, USER_DELETED ->
+                        meetGuestRecordService.handleUserLeftOrRemovedEvent(payload.getMeetId(), payload.getUserId());
+                case USER_JOINED, MEET_CREATED ->
+                        meetGuestRecordService.handleUserJoinEvent(payload.getMeetId(), payload.getUserId());
+            }
+
             chatService.sendChatCoreEvent(payload.getMeetId(), event);
+
         } catch (JsonProcessingException ex) {
             log.error("Error during mapping event : {}", message);
         }

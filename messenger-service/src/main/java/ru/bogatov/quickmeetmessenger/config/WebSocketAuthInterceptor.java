@@ -40,7 +40,8 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             if (requestTokenHeader != null && requestTokenHeader.startsWith(BEARER)) {
                 token = requestTokenHeader.substring(7);
             }
-            if (token == null || !jwtProvider.validateToken(token) || !isAllowedByTopicId(token, destination)) {
+            if (token == null || !jwtProvider.validateToken(token)) {
+                //|| !isAllowedByTopicId(token, destination)
                 return null;
             }
         }

@@ -9,6 +9,7 @@ public class MessageEvent {
 
     String content;
     UUID senderId;
+    UUID destinationId;
     boolean chatViewed;
 
 }
