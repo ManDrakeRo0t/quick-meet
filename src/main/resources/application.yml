@@ -121,7 +121,7 @@ jwt:
   secret: test-secret
   token:
     refresh:
-      expire: 30
+      expire: 12
     access:
       expire: 30
 

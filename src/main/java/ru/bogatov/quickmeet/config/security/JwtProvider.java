@@ -40,7 +40,7 @@ public class JwtProvider {
     }
 
     public String generateTokenForUser(UserForAuth user) {
-        Date date = Date.from(LocalDateTime.now().plusMinutes(ACCESS_TOKEN_EXPIRE).atZone(ZoneId.systemDefault()).toInstant());
+        Date date = Date.from(LocalDateTime.now().plusSeconds(ACCESS_TOKEN_EXPIRE).atZone(ZoneId.systemDefault()).toInstant());
         HashMap<String, Object> claims = new HashMap<>();
         claims.put(ROLES,user.getRole());
         claims.put(ID,user.getId());
@@ -59,7 +59,7 @@ public class JwtProvider {
 
     @Transactional
     public String generateRefreshForUser(UserForAuth user) {
-        Date date = Date.from(LocalDateTime.now().plusDays(REFRESH_TOKEN_EXPIRE).atZone(ZoneId.systemDefault()).toInstant());
+        Date date = Date.from(LocalDateTime.now().plusHours(REFRESH_TOKEN_EXPIRE).atZone(ZoneId.systemDefault()).toInstant());
         HashMap<String, Object> claims = new HashMap<>();
         claims.put(ID,user.getId());
         String token = Jwts.builder()
